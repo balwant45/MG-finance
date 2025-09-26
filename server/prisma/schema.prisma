@@ -1,0 +1,144 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+
+
+// ----------------------------
+// Prisma & Database Connection
+// ----------------------------
+datasource db {
+  provider = "postgresql"           // Using PostgreSQL
+  url      = env("DATABASE_URL")    // Connection string in .env
+}
+
+generator client {
+  provider = "prisma-client-js"     // Generates Prisma Client for Node.js
+}
+
+// ----------------------------
+// Customer Table
+// ----------------------------
+model Customer {
+  id              Int       @id @default(autoincrement()) // PK
+  name            String    // Full name
+  fatherName      String    // Father's name
+  contactNo       String?   @db.VarChar(20)               // Primary phone
+  altContactNo    String?   @db.VarChar(20)               // Alternate phone
+  aadharNo        String?   @unique                       // Aadhaar (unique)
+  address         String?   // Address
+  city            String?   // City
+  occupation      String?   // Occupation
+  profileImageUrl String?   // Profile image URL/path
+  srNo            Int?      // Serial no (optional)
+  loans           Loan[]    // 1:N Customer → Loan
+  createdAt       DateTime  @default(now())               // Created timestamp
+  updatedAt       DateTime  @updatedAt                    // Updated timestamp
+  @@index([contactNo])                                     // Fast phone lookups
+}
+
+// ----------------------------
+// Loan Table
+// ----------------------------
+model Loan {
+  id                   Int             @id @default(autoincrement()) // PK
+  loanNumber           String          @unique                       // Business ID
+  loanDate             DateTime        // Issue date
+  loanType             String          // Daily, Executive, etc.
+  status               String          // Active, Closed, etc.
+  loanAmount           Decimal         @db.Decimal(10,2) // Principal
+  disbursedAmount      Decimal?        @db.Decimal(10,2) // Actually disbursed
+  interestRate         Decimal?        @db.Decimal(5,2)  // % per annum or flat
+  interestAmount       Decimal?        @db.Decimal(10,2) // Total interest
+  totalAmount          Decimal?        @db.Decimal(10,2) // Principal + interest
+  emiAmount            Decimal?        @db.Decimal(10,2) // Per installment
+  totalEmi             Int?            // Planned count of EMIs
+  emiPaid              Int             @default(0)       // EMIs paid so far
+  balance              Decimal?        @db.Decimal(10,2) // Remaining amount
+  tenure               Int?            // Months or days (decide and be consistent)
+  installmentFrequency String?         // Daily, Weekly, Monthly
+  customerId           Int             // FK → Customer
+  customer             Customer        @relation(fields: [customerId], references: [id])
+  installments         Installment[]   // 1:N Loan → Installments
+  transactions         Transaction[]   // 1:N Loan → Transactions
+  guarantors           LoanGuarantor[] // M:N Loan ↔ Guarantor
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+}
+
+// ----------------------------
+// Installment Table
+// ----------------------------
+model Installment {
+  id           Int       @id @default(autoincrement()) // PK
+  srNo         Int       // Sequence number
+  dueDate      DateTime  // Scheduled due date
+  emiAmount    Decimal   @db.Decimal(10,2) // Expected EMI
+  amount       Decimal   @db.Decimal(10,2) // Actually paid (0 if unpaid)
+  balance      Decimal   @db.Decimal(10,2) // Remaining after this line
+  status       String    // Pending, Paid, Overdue
+  loanId       Int       // FK → Loan
+  loan         Loan      @relation(fields: [loanId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([loanId, srNo]) // Speeds chronological queries per loan
+}
+
+// ----------------------------
+// Transaction Table
+// ----------------------------
+model Transaction {
+  id        Int       @id @default(autoincrement()) // PK
+  code      String    // e.g., K1005x01
+  date      DateTime  // Transaction date/time
+  amount    Decimal   @db.Decimal(10,2) // Amount
+  type      String    // Credit, Debit
+  loanId    Int       // FK → Loan
+  loan      Loan      @relation(fields: [loanId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([loanId, date]) // Statement lookups
+}
+
+// ----------------------------
+// Guarantor Table
+// ----------------------------
+model Guarantor {
+  id                 Int              @id @default(autoincrement()) // PK
+  name               String           // Full name
+  relationToBorrower String?          // Brother, Friend, etc.
+  phone              String?          @db.VarChar(20) // Contact
+  address            String?          // Address
+  city               String?          // City
+  occupation         String?          // Occupation
+  idProofType        String?          // Aadhar, PAN, DL
+  idProofNumber      String?          @unique // Unique proof number
+  notes              String?          // Free-form notes
+  loans              LoanGuarantor[]  // M:N Guarantor ↔ Loan
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  @@index([name, phone]) // Quick search
+}
+
+// ----------------------------
+// Loan ↔ Guarantor Join Table
+// ----------------------------
+model LoanGuarantor {
+  id           Int        @id @default(autoincrement()) // PK
+  loanId       Int        // FK → Loan
+  guarantorId  Int        // FK → Guarantor
+  role         String?    // Primary, Secondary
+  createdAt    DateTime   @default(now())
+
+  loan         Loan       @relation(fields: [loanId], references: [id])
+  guarantor    Guarantor  @relation(fields: [guarantorId], references: [id])
+
+  @@unique([loanId, guarantorId]) // Prevent duplicates
+  @@index([guarantorId])
+  @@index([loanId])
+}
