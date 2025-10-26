@@ -2,3 +2,33 @@
 @plugin "daisyui" {
   themes: light --default, dark --prefersdark, synthwave;
 }
+*
+h1, h2,h3{
+  /* color:#f7d997 */
+  color: var(--color-golden);
+}
+.p{
+ 
+    font-weight: 400;
+    letter-spacing: 0.04em;
+    text-transform: capitalize;
+    line-height: 28px;
+    font-size: 16px;}
+#navbar{
+  display: flex;
+    width: 100%;
+    align-items: center;
+    padding: 0.5rem /* 8px */;
+    min-height: 4rem ;
+}
+@font-face {
+  font-family: 'Haltto';
+  src: url('/client/src/assets/Haltto\ Bold.ttf') format('woff2'),
+       url('/client/src/assets/Haltto\ Light.ttf') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+*{
+  font-family: 'Haltto',sans-serif;
+}

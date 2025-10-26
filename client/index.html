@@ -1,12 +1,35 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="balwantlight"> <!-- ✅ Apply theme here -->
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<html data-theme="synthwave"></html>
-    <title>Vite + React</title>
+    <title>MG Finances</title>
+
+    <!-- ✅ Define your custom theme before React loads -->
+    <script>
+      window.daisyui = {
+        themes: [
+          {
+            balwantlight: {
+              primary: "#768C64",         // Olive Green
+              secondary: "#C24643",       // Rustic Red
+              accent: "#3B4F2A",          // Deep Forest
+              neutral: "#3B4F2A",         // Sidebar / text
+              "base-100": "#FFF8DC",      // Background
+              "base-content": "#3B4F2A",  // Text color
+              info: "#768C64",
+              success: "#3B4F2A",
+              warning: "#C24643",
+              error: "#C24643"
+            }
+          },
+          "dark" // ✅ Include dark theme for toggling
+        ]
+      };
+    </script>
   </head>
+
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
