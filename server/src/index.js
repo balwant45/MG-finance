@@ -1,16 +1,4 @@
-3
-// app.use(express.json());
-// app.use("/customers", customerRoutes);
 
-// app.get("/", (req, res) => {
-//   res.send("You are at home");
-// });
-
-// app.use("/uploads", express.static("uploads"));
-
-// app.listen(PORT, () => {
-//   console.log(`🚀 Server running at http://localhost:${PORT}`);
-// });
 import express from "express";
 import dotenv from "dotenv";
 
