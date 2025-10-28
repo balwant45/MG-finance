@@ -6,12 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon ./src/index.js",
-<<<<<<< HEAD
     "start": "node ./src/index.js"
-=======
-    "start":" node ./src/index.js"
->>>>>>> 2723e4929db2323636ba73e31dc217dc75feabf3
-  },
+},
   "author": "balwant",
   "license": "ISC",
   "devDependencies": {
