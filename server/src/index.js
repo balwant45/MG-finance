@@ -1,36 +1,29 @@
-
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors"; // ✅ Import CORS
 
 // Import all route modules
 import customerRoutes from "./routes/Customer.route.js";
 import loanRoutes from "./routes/Loans.route.js";
-// import installmentRoutes from "./routes/Installment.route.js"; // if you created this
+// import installmentRoutes from "./routes/Installment.route.js"; // optional
 
 dotenv.config();
-// Configure CORS
-app.use(cors(corsOptions)); // Use CORS middleware with your options
-const express = require("express");
-const cors = require("cors");
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Allow requests from your frontend origin
+// ✅ Enable CORS for your frontend origin
 app.use(cors({
-  origin: "*", // or "*" for all origins
+  origin: "http://localhost:5173", // or use "*" to allow all origins
   credentials: true
 }));
-
-
-
-const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
 // Mount routes
 app.use("/customers", customerRoutes);
 app.use("/loans", loanRoutes);
-// app.use("/installments", installmentRoutes); // optional, if you created this
+// app.use("/installments", installmentRoutes); // optional
 
 // Home route
 app.get("/", (req, res) => {
