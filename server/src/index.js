@@ -9,17 +9,20 @@ import loanRoutes from "./routes/Loans.route.js";
 
 dotenv.config();
 // Configure CORS
-const corsOptions = {
-  origin: 'http://localhost:5173', // Allow only your frontend's origin
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allow specific HTTP methods
-  credentials: true, // Allow cookies to be sent
-  optionsSuccessStatus: 204 // Some legacy browsers (IE11, various SmartTVs) choke on 204
-};
-
 app.use(cors(corsOptions)); // Use CORS middleware with your options
-
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
+
+// Allow requests from your frontend origin
+app.use(cors({
+  origin: "*", // or "*" for all origins
+  credentials: true
+}));
+
+
+
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
