@@ -3,7 +3,6 @@ import AboutUs from "./home/AboutUs";
 import ContactUs from "./home/ContactUs";
 import logo from '../assets/mgFinanceLogo.svg';
 import hero from "../assets/bg.png"
-import Newsletter from "./home/Newsletter";
 
 export default function LandingPage() {
   const navigate = useNavigate();
