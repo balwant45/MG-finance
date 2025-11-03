@@ -4,11 +4,11 @@ import axios from "axios";
 import { useState } from "react";
 import { useEffect } from "react";
 function TableList() {
-  // const [customerList, setCustomerList] = useState([]);
+  const [customerList, setCustomerList] = useState([]);
   useEffect(() => {
     const fetchCustomers = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/customers");
+        const response = await axios.get("https://mg-finance-7.onrender.com/customers");
         setCustomerList(response.data);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -34,18 +34,17 @@ function TableList() {
           </tr>
         </thead>
         <tbody>
-          {/* row 1 */}
-          <tr >
-              <th>id</th>
-              <td>name</td>
-              <td>Quality Control Specialist</td>
-              <td>Blue</td>
-              <td>Active</td>
-              <td>₹1000</td>
-              <td>₹0</td>
-              <td>₹5000</td>
-            </tr>
-          
+        {customerList.map((customer, index) => (
+  <tr key={customer.id || index}>
+    <td>{index + 1}</td>
+    <td>{customer.name} s/o {customer.date}</td>
+    <td>{customer.emiAmount}</td>
+    <td>{customer.status}</td>
+    <td>{customer.debit}</td>
+    <td>{customer.credit}</td>
+    <td>{customer.balance}</td>
+  </tr>
+))}
         </tbody>
       </table>
     </div>

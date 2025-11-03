@@ -121,37 +121,76 @@ export const getCustomerById = async (req, res) => {
   }
 };
 //search by name and number
-export const searchCustomers=async (req, res)=>{
+// export const searchCustomers=async (req, res)=>{
+//   try {
+//     const {name, contactNo}=req.query;
+//     if (!name && !contactNo) {
+//     return res.status(400).json({error:'please provide name or contact number'})
+//     }
+//     const customers= await prisma.customer.findMany({
+//       where:{
+//         OR:[
+//       name && {
+//         name: {
+//           contains: name,
+//           mode: 'insensitive',
+//         },
+//       },
+//       contactNo && {
+//         contactNo: {
+//           contains: contactNo,
+//           mode: 'insensitive',
+//         },
+//       },
+//     ].filter(Boolean),
+//       }
+//     });
+//     res.json(customers);
+//     console.log('Search query:', { name, contactNo });
+
+//   } catch (error) {
+//     console.error('error searching customers', error.message);
+//     res.status(500).json({error:'internal server error'})
+    
+//   }
+// }
+// Ensure this function is used on your backend for the /customers/search route
+export const searchCustomers = async (req, res) => {
   try {
-    const {name, contactNo}=req.query;
-    if (!name && !contactNo) {
-    return res.status(400).json({error:'please provide name or contact number'})
+    const { name, contactNo } = req.query; 
+    const searchTerm = name || contactNo; // Use the value from the frontend's 'name' parameter
+
+    if (!searchTerm) {
+      return res.status(400).json({ error: 'A search term is required.' });
     }
-    const customers= await prisma.customer.findMany({
-      where:{
-        OR:[
-      name && {
-        name: {
-          contains: name,
-          mode: 'insensitive',
-        },
+
+    const customers = await prisma.customer.findMany({
+      where: {
+        OR: [
+          // Search by name
+          {
+            name: {
+              contains: searchTerm, 
+              mode: 'insensitive',
+            },
+          },
+          // Search by contact number
+          {
+            contactNo: {
+              contains: searchTerm, 
+              mode: 'insensitive',
+            },
+          },
+        ],
       },
-      contactNo && {
-        contactNo: {
-          contains: contactNo,
-          mode: 'insensitive',
-        },
-      },
-    ].filter(Boolean),
-      }
     });
-    res.json(customers);
-    console.log('Search query:', { name, contactNo });
+    
+    // Returns an array, which is what the frontend expects.
+    res.json(customers); 
 
   } catch (error) {
-    console.error('error searching customers', error.message);
-    res.status(500).json({error:'internal server error'})
-    
+    console.error('Error searching customers:', error.message);
+    res.status(500).json({ error: 'Internal server error occurred during search.' });
   }
 }
 // view all loans for a customer
@@ -226,52 +265,5 @@ export const addLoanToCustomer = async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
-//create installments from loan data
-export const generateInstallmentsForLoan = async (loanId) => {
-  const loan = await prisma.loan.findUnique({ where: { id: loanId } });
-  if (!loan) throw new Error("Loan not found");
-
-  const installments = [];
-  let balance = parseFloat(loan.totalAmount);
-
-  for (let i = 1; i <= loan.totalEmi; i++) {
-    const emiAmount = parseFloat(loan.emiAmount);
-    const dueDate = new Date(loan.loanDate);
-    dueDate.setMonth(dueDate.getMonth() + i);
-
-    installments.push({
-      srNo: i,
-      dueDate,
-      emiAmount,
-      amount: 0,
-      balance: balance - emiAmount,
-      status: "Pending",
-      loanId: loanId
-    });
-
-    balance -= emiAmount;
-  }
-
-  await prisma.installment.createMany({ data: installments });
-};
-
-// Return all EMI payments for a loan.
-export const getLoanInstallments = async (req, res) => {
-  const loanId = parseInt(req.params.id);
-  if (isNaN(loanId)) return res.status(400).json({ error: 'Invalid loan ID' });
-
-  try {
-    const installments = await prisma.installment.findMany({
-      where: { loanId },
-      orderBy: { srNo: 'asc' }
-    });
-
-    res.json(installments);
-  } catch (error) {
-    console.error('Error fetching installments:', error.message);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
 
 //full profile + loan summary
