@@ -3,31 +3,41 @@ import "./App.css";
 import LogIn from "./pages/home/LogIn";
 import DashboardLayout from "./layouts/DashboardLayout";
 import LandingPage from "./pages/LandingPage";
-import { useSelector } from "react-redux";
 import TableList from "./pages/DashboardPages/TableList";
 import Dashboard from "./pages/DashboardPages/Dashboard";
+import CustomerDetail from "./pages/DashboardPages/CustomerDetails";
+import { useSelector } from "react-redux";
+import ProtectedRoute from "./components/ProtectedRoute"; // You’ll create this
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
   return (
     <Routes>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LogIn />} />
-          <Route path="*" element={<Navigate to="/" />} />
-        </>
-      ) : (
-        <Route path="/" element={<DashboardLayout />}>
-          <Route path="dailycollection" element={<TableList />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="customerdetails" element={<div>Customer Details Page</div>} />
-          <Route path="createloan" element={<div>customer creation form</div>} />
+      {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/login" element={<LogIn />} />
 
-          <Route path="*" element={<Navigate to="dailycollection" />} />
-        </Route>
-      )}
+      {/* Protected Routes */}
+      <Route
+        path="/dashboard/*"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Navigate to="dailycollection" />} />
+        <Route path="dailycollection" element={<TableList />} />
+        <Route path="dashboard" element={<Dashboard />} />
+        <Route path="customerdetails" element={<CustomerDetail/>} />
+        <Route path="createloan" element={<div>customer creation form</div>} />
+        <Route path="customers/:id/profile" element={<CustomerDetail />} />
+        {/* <Route path="*" element={<Navigate to="dailycollection" />} /> */}
+      </Route>
+
+      {/* Catch-all for unknown routes */}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }
