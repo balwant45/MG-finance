@@ -7,7 +7,7 @@ import TableList from "./pages/DashboardPages/TableList";
 import Dashboard from "./pages/DashboardPages/Dashboard";
 import CustomerDetail from "./pages/DashboardPages/CustomerDetails";
 import { useSelector } from "react-redux";
-import ProtectedRoute from "./components/ProtectedRoute"; // You’ll create this
+import ProtectedRoute from "./components/ProtectedRoute.jsx";  
 
 function App() {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
