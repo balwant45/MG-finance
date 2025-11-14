@@ -11,6 +11,6 @@ const router = express.Router();
 // router.get("/:id/loans", getCustomerLoans);
 router.get("/loans/:id/summary", getLoanSummary);
 router.post("/loans/:id/payments", makeLoanPayment);
-router.get("/loans/daily-collection", getDailyCollectionData);
+router.get("/daily-collection", getDailyCollectionData);
 
 export default router;
