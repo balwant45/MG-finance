@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import Sidebar from "../components/sidebar";
+import Sidebar from "../components/Sidebar";
 import Navbar from "../components/Navbar";
 
 function dashboardWrapper() {
@@ -19,16 +19,4 @@ function dashboardWrapper() {
 }
 
 export default dashboardWrapper;
-// <div className='flex min-h-screen w-full bg-gray-50 text-gray-900 '>
-{
-  /* sidebar */
-}
-{
-  /* <main className='flex w-full flex-col bg-gray-50 dark:bg-black md:pl-64'>  */
-}
-{
-  /* navbar and content */
-}
 
-//  </main>
-// </div>
