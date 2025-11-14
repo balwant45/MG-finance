@@ -1,69 +1,7 @@
 // Fetch all loans for a specific customer
 // In your loan.controllers.js file:
 
-// Fetch all loan data for a specific customer, consolidated for the frontend
-export const getCustomerLoans = async (req, res) => {
-  const customerId = parseInt(req.params.id);
-  if (isNaN(customerId)) return res.status(400).json({ error: 'Invalid customer ID' });
 
-  try {
-    // 1. Find the latest loan for the customer
-    const loan = await prisma.loan.findFirst({
-      where: { customerId },
-      orderBy: { startDate: 'desc' }, // Assuming you have a startDate field
-      include: {
-        installments: true,
-        transactions: {
-          orderBy: { date: 'desc' }, // Get recent transactions
-          take: 5 // Limit to 5 recent transactions
-        }
-      }
-    });
-
-    if (!loan) {
-      // Return empty data structure if no loan is found, preventing a frontend crash
-      return res.json({
-        loanSummary: {},
-        transactions: [],
-        emiLedger: [] 
-      });
-    }
-
-    // 2. Perform Loan Calculations (similar to your getLoanSummary)
-    const totalPaid = loan.installments?.reduce((sum, inst) => sum + parseFloat(inst.amount), 0) || 0;
-    const totalAmount = parseFloat(loan.totalAmount) || 0;
-    const remainingBalance = totalAmount - totalPaid;
-
-    // 3. Format the Consolidated Response (as the frontend expects)
-    res.json({
-      loanSummary: {
-        id: loan.id,
-        startDate: loan.startDate ? loan.startDate.toISOString().split('T')[0] : 'N/A',
-        closingDate: loan.endDate ? loan.endDate.toISOString().split('T')[0] : 'N/A', // Assuming you have an endDate
-        amount: loan.totalAmount, // or loan.principalAmount, depending on your schema
-        balance: remainingBalance.toFixed(2), // Use calculated balance
-        type: loan.loanType,
-        status: loan.status,
-        tenure: `${loan.totalEmi} months`,
-      },
-      transactions: loan.transactions.map(t => ({
-          date: t.date.toISOString().split('T')[0], 
-          amount: t.amount.toString() 
-      })) || [],
-      emiLedger: loan.installments.map(i => ({
-          slNo: i.id, 
-          date: i.date.toISOString().split('T')[0], 
-          emiAmount: i.amount.toString(),
-          debit: i.paymentAmount.toString(), // Assuming this is how you track payments
-          balance: i.remainingBalance.toString() // Assuming this is tracked
-      })) || [] // installments are being used as the ledger
-    });
-
-  } catch (error) {
-    console.error('Error fetching consolidated customer loans:', error.message);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
 //loan status for generating tables
 export const getLoanSummary = async (req, res) => {
   const loanId = parseInt(req.params.id);
@@ -132,4 +70,56 @@ export const makeLoanPayment = async (req, res) => {
     console.error('Error recording payment:', error.message);
     res.status(500).json({ error: 'Internal server error' });
   }
+};
+// New function to fetch all recent installment/transaction data for the daily collection view
+export const getDailyCollectionData = async (req, res) => {
+    try {
+        // Fetch all installments (or transactions) that are due/paid recently.
+        // I will use Installments as they track the EMI details.
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+
+        const collectionEntries = await prisma.installment.findMany({
+            where: {
+                // You might want to filter by installments due today or recently paid/unpaid
+                // Example: Fetch all installments with a due date in the last 7 days
+                // dueDate: {
+                //     gte: new Date(new Date().setDate(new Date().getDate() - 7)), 
+                // }
+            },
+            orderBy: {
+                dueDate: 'asc', // Or by payment date/creation date
+            },
+            include: {
+                loan: {
+                    select: {
+                        loanType: true,
+                        customer: {
+                            select: {
+                                name: true,
+                                fatherName: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        // Map the complex data structure to the simple table structure
+        const formattedData = collectionEntries.map(i => ({
+            srNo: i.srNo,
+            particulars: `${i.loan.customer.name} s/o ${i.loan.customer.fatherName}`,
+            installmentAmount: i.emiAmount?.toString() || '0.00', // Expected EMI
+            status: i.status, // Pending, Paid, Overdue
+            debitAmount: i.amount?.toString() || '0.00', // Actual paid amount
+            creditAmount: '0.00', // Assuming all incoming payments are debits on the customer's ledger, and this column is not actively used.
+            notes: i.status === 'Paid' ? 'Paid' : (i.status === 'Overdue' ? 'Overdue' : 'Pending'),
+        }));
+
+        res.json(formattedData);
+
+    } catch (error) {
+        console.error('Error fetching daily collection data:', error.message);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 };

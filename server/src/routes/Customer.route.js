@@ -6,7 +6,8 @@ import {
   createCustomer, // Create a new customer with loan and optional guarantor
   searchCustomers, // Search customers by name or contact number
   getCustomerProfile, //GET complete customer data
-  addLoanToCustomer //add new loan to existing customer
+  addLoanToCustomer, //add new loan to existing customer
+  
 } from "../controllers/Customer.controller.js";
  import localUpload from "../middlewares/localUpload.middleware.js";
 // Middleware for validating customer and loan data before creation
@@ -69,7 +70,6 @@ router.post(
  * @access  Public
  */
 router.get("/:id/profile", getCustomerProfile);
-
 /**
  * @route   GET /customers/:id/loans
  * @desc    Fetch all loans for a specific customer

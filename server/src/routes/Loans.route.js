@@ -1,14 +1,16 @@
 import express from "express";
 import {
-  getCustomerLoans,
+  getDailyCollectionData,
+  
   getLoanSummary,
   makeLoanPayment
 } from "../controllers/loan.controllers.js";
 
 const router = express.Router();
 
-router.get("/:id/loans", getCustomerLoans);
+// router.get("/:id/loans", getCustomerLoans);
 router.get("/loans/:id/summary", getLoanSummary);
 router.post("/loans/:id/payments", makeLoanPayment);
+router.get("/loans/daily-collection", getDailyCollectionData);
 
 export default router;
