@@ -74,21 +74,12 @@ export const makeLoanPayment = async (req, res) => {
 // New function to fetch all recent installment/transaction data for the daily collection view
 export const getDailyCollectionData = async (req, res) => {
     try {
-        // Fetch all installments (or transactions) that are due/paid recently.
-        // I will use Installments as they track the EMI details.
-        const today = new Date();
-        today.setHours(0, 0, 0, 0); // Start of today
-
         const collectionEntries = await prisma.installment.findMany({
-            where: {
-                // You might want to filter by installments due today or recently paid/unpaid
-                // Example: Fetch all installments with a due date in the last 7 days
-                // dueDate: {
-                //     gte: new Date(new Date().setDate(new Date().getDate() - 7)), 
-                // }
-            },
+            // Note: Keeping the 'where' clause empty fetches everything.
+            // If you have a large database, you MUST add a 'where' clause (e.g., date filter) 
+            // to limit the results, otherwise the query could time out.
             orderBy: {
-                dueDate: 'asc', // Or by payment date/creation date
+                dueDate: 'asc',
             },
             include: {
                 loan: {
@@ -105,21 +96,29 @@ export const getDailyCollectionData = async (req, res) => {
             },
         });
 
-        // Map the complex data structure to the simple table structure
-        const formattedData = collectionEntries.map(i => ({
-            srNo: i.srNo,
-            particulars: `${i.loan.customer.name} s/o ${i.loan.customer.fatherName}`,
-            installmentAmount: i.emiAmount?.toString() || '0.00', // Expected EMI
-            status: i.status, // Pending, Paid, Overdue
-            debitAmount: i.amount?.toString() || '0.00', // Actual paid amount
-            creditAmount: '0.00', // Assuming all incoming payments are debits on the customer's ledger, and this column is not actively used.
-            notes: i.status === 'Paid' ? 'Paid' : (i.status === 'Overdue' ? 'Overdue' : 'Pending'),
-        }));
+        // ✅ MODIFICATION: Use optional chaining to safely access nested data
+        const formattedData = collectionEntries.map(i => {
+            const customerName = i.loan?.customer?.name || 'Customer Name N/A';
+            const fatherName = i.loan?.customer?.fatherName || 'Father Name N/A';
+            const status = i.status || 'Pending';
+            
+            return {
+                // Using nullish coalescing (??) for safer defaults
+                srNo: i.srNo ?? 'N/A',
+                particulars: `${customerName} s/o ${fatherName}`,
+                installmentAmount: i.emiAmount?.toString() || '0.00', 
+                status: status, 
+                debitAmount: i.amount?.toString() || '0.00',
+                creditAmount: '0.00',
+                notes: status === 'Paid' ? 'Paid' : (status === 'Overdue' ? 'Overdue' : 'Pending'),
+            };
+        });
 
         res.json(formattedData);
 
     } catch (error) {
-        console.error('Error fetching daily collection data:', error.message);
-        res.status(500).json({ error: 'Internal server error' });
+        // Log the exact error message to your Render logs for debugging
+        console.error('CRITICAL Error fetching daily collection data:', error.message);
+        res.status(500).json({ error: 'Internal server error while processing loan data.' });
     }
 };
