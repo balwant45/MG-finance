@@ -7,6 +7,7 @@ import TableList from "./pages/DashboardPages/TableList";
 import Dashboard from "./pages/DashboardPages/Dashboard";
 import CustomerDetail from "./pages/DashboardPages/CustomerDetails";
 import { useSelector } from "react-redux";
+import CreateCustomer from "./pages/DashboardPages/CreateCustomer";
 
 // FIX: Ensure this path is correct, potentially needs the file extension (.jsx)
 import ProtectedRoute from "./components/ProtectedRoute"; 
@@ -43,7 +44,7 @@ function App() {
         {/* Path: /dashboard/dailycollection */}
         <Route path="dailycollection" element={<TableList />} />
         
-        <Route path="createloan" element={<div>customer creation form</div>} />
+        <Route path="createloan" element={<CreateCustomer/>} />
         
         {/* FIX 2: Consolidate customer detail routes into one clear parameterized route */}
         {/* Path: /dashboard/customers/:id */}

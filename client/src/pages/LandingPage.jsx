@@ -1,8 +1,9 @@
-import {  useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import AboutUs from "./home/AboutUs";
 import ContactUs from "./home/ContactUs";
-import logo from '../assets/mgFinanceLogo.svg';
-import hero from "../assets/bg.png"
+import logo from "../assets/mgFinanceLogo.svg";
+import hero from "../assets/bg.png";
+import "./home/landingPage.css"
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function LandingPage() {
         backgroundAttachment: "fixed",
         backgroundPosition: "center",
       }}
+      id="landing-page"
     >
       {/* Overlay to darken background */}
       <div className="bg-opacity-60 min-h-screen">
@@ -24,15 +26,25 @@ export default function LandingPage() {
           <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <h1 className="text-[#f7d997] font-bold text-xl">MG FINANCE</h1>
             <ul className="hidden md:flex space-x-6 text-[#f7d997] font-medium">
-              <li><a href="#aboutus" className="hover:text-blue-600">About Us</a></li>
-              <li><a href="#contact" className="hover:text-blue-600">Contact</a></li>
+              <li>
+                <a href="#aboutus" className="hover:text-blue-600">
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a href="#contact" className="hover:text-blue-600">
+                  Contact
+                </a>
+              </li>
             </ul>
           </div>
         </nav>
 
         {/* Hero Section */}
         <div className="flex flex-col items-center justify-center min-h-screen text-center text-[#f7d997]">
-          <img src={logo} alt="MG Finance Logo" className="mb-2" style={{height:"60%"}} />
+          <img src={logo} alt="MG Finance Logo" className="h-1/5 w-2xl" />
+        <h1 className="mb-3 text-2xl">lorem frffgerg geg sdffsfsd
+        fwefwefwefwesdcfwe fwgwf</h1>
           <button
             style={{
               borderColor: "#f7d997",
@@ -43,7 +55,6 @@ export default function LandingPage() {
             PROCEED HERE
           </button>
         </div>
-
         {/* About Us Section */}
         <AboutUs />
 

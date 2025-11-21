@@ -1,6 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 const prisma = new PrismaClient();
 // customer creation
+import { generateInstallmentsForLoan } from "./Installment.controllers.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 export const createCustomer = async (req, res) => {
@@ -98,7 +99,22 @@ export const createCustomer = async (req, res) => {
           ],
         },
       },
-    });
+    include: {
+        loans: {
+          select: { id: true }
+        }
+      }
+    });
+    
+    // ✅ CHANGE 2: Call the installment generator
+    const newLoanId = newCustomer.loans[0]?.id; // Get the ID of the first (and only) loan created
+
+    if (newLoanId) {
+        await generateInstallmentsForLoan(newLoanId);
+        console.log(`Installments generated for new loan ID: ${newLoanId}`);
+    } else {
+        console.warn('Loan ID was not returned after creation. Installments skipped.');
+    }
 
     res.status(201).json(newCustomer);
   } catch (error) {
@@ -469,12 +485,17 @@ export const addLoanToCustomer = async (req, res) => {
           : undefined,
       },
     });
+    // ✅ CHANGE: Call the installment generator using the ID of the newly created loan
+    await generateInstallmentsForLoan(newLoan.id);
+    console.log(`Installments generated for new loan ID: ${newLoan.id}`);
 
-    res.status(201).json(newLoan);
-  } catch (error) {
-    console.error("Error adding loan:", error.message);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    res.status(201).json(newLoan);
+  } catch (error) {
+    console.error("Error adding loan:", error.message);
+    res.status(500).json({ error: "Internal server error" });
+  }
 };
+
+    
 
 //full profile + loan summary

@@ -81,7 +81,7 @@ export const validateCustomerLoan = async (req, res, next) => {
 
     next(); // ✅ All validations passed
   } catch (error) {
-    console.error('Validation error:', error.message); // 🧪 Log unexpected errors
+    console.error('Validation error:', error.message); 
     res.status(500).json({ error: 'Internal server error during validation' });
   }
 };
