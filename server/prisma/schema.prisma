@@ -1,20 +1,15 @@
 
-
-// ----------------------------
-// Prisma & Database Connection
-// ----------------------------
 datasource db {
-  provider = "postgresql"           // Using PostgreSQL
-  url      = env("DATABASE_URL")    // Connection string in .env
+  provider = "postgresql"           
+  url      = env("DATABASE_URL")    
 }
 
 generator client {
   provider = "prisma-client-js"     // Generates Prisma Client for Node.js
 }
 
-// ----------------------------
 // Customer Table
-// ----------------------------
+
 model Customer {
   id              Int       @id @default(autoincrement()) // PK
   name            String    // Full name
@@ -32,9 +27,7 @@ model Customer {
   @@index([contactNo])                                     // Fast phone lookups
 }
 
-// ----------------------------
 // Loan Table
-// ----------------------------
 model Loan {
   id                   Int             @id @default(autoincrement()) // PK
   loanNumber           String          @unique                       // Business ID
@@ -57,13 +50,13 @@ model Loan {
   installments         Installment[]   // 1:N Loan → Installments
   transactions         Transaction[]   // 1:N Loan → Transactions
   guarantors           LoanGuarantor[] // M:N Loan ↔ Guarantor
+  endDate                 DateTime?    //to store new end date 
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 }
 
-// ----------------------------
+
 // Installment Table
-// ----------------------------
 model Installment {
   id           Int       @id @default(autoincrement()) // PK
   srNo         Int       // Sequence number
@@ -80,9 +73,7 @@ model Installment {
   @@index([loanId, srNo]) // Speeds chronological queries per loan
 }
 
-// ----------------------------
 // Transaction Table
-// ----------------------------
 model Transaction {
   id        Int       @id @default(autoincrement()) // PK
   code      String    // e.g., K1005x01
@@ -97,9 +88,7 @@ model Transaction {
   @@index([loanId, date]) // Statement lookups
 }
 
-// ----------------------------
 // Guarantor Table
-// ----------------------------
 model Guarantor {
   id                 Int              @id @default(autoincrement()) // PK
   name               String           // Full name
@@ -118,9 +107,7 @@ model Guarantor {
   @@index([name, phone]) // Quick search
 }
 
-// ----------------------------
 // Loan ↔ Guarantor Join Table
-// ----------------------------
 model LoanGuarantor {
   id           Int        @id @default(autoincrement()) // PK
   loanId       Int        // FK → Loan
@@ -134,4 +121,14 @@ model LoanGuarantor {
   @@unique([loanId, guarantorId]) // Prevent duplicates
   @@index([guarantorId])
   @@index([loanId])
+}
+//user table
+model User {
+  id        String   @id @default(uuid()) // Generates a UUID automatically
+  name      String
+  email     String   @unique
+  password  String   // Will store the hashed password
+  createdAt DateTime @default(now())
+
+  @@map("users") // Optional: Renames the table to "users" in the DB (lowercase)
 }

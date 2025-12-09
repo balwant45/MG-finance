@@ -4,6 +4,7 @@
 :root{
     
     --color-golden: #DCCA87;
+    --color-header:#be322e;
 }
 html,body,#root,.app{
     height: 100%;

@@ -3,7 +3,8 @@ import {
   getDailyCollectionData,
   
   getLoanSummary,
-  makeLoanPayment
+  makeLoanPayment,
+  updateInstallmentStatus
 } from "../controllers/loan.controllers.js";
 
 const router = express.Router();
@@ -12,5 +13,5 @@ const router = express.Router();
 router.get("/loans/:id/summary", getLoanSummary);
 router.post("/loans/:id/payments", makeLoanPayment);
 router.get("/daily-collection", getDailyCollectionData);
-
+router.post("/installments/:id/update-status", updateInstallmentStatus);
 export default router;

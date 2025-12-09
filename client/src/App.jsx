@@ -1,4 +1,8 @@
+import { useEffect, useState } from "react"; // ✅ Import useEffect & useState
 import { Route, Routes, Navigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux"; // ✅ Import useDispatch
+import axios from "axios";
+
 import "./App.css";
 import LogIn from "./pages/home/LogIn";
 import DashboardLayout from "./layouts/DashboardLayout";
@@ -6,58 +10,81 @@ import LandingPage from "./pages/LandingPage";
 import TableList from "./pages/DashboardPages/TableList";
 import Dashboard from "./pages/DashboardPages/Dashboard";
 import CustomerDetail from "./pages/DashboardPages/CustomerDetails";
-import { useSelector } from "react-redux";
 import CreateCustomer from "./pages/DashboardPages/CreateCustomer";
+import ProtectedRoute from "./components/ProtectedRoute";
 
-// FIX: Ensure this path is correct, potentially needs the file extension (.jsx)
-import ProtectedRoute from "./components/ProtectedRoute"; 
-import axios from "axios";
-axios.defaults.baseURL = 'https://mg-finance-7.onrender.com';
-
+// ✅ 1. AXIOS SETUP
+// If you are running the backend locally, change this to 'http://localhost:5000'
+// axios.defaults.baseURL = 'https://mg-finance-7.onrender.com'; 
+axios.defaults.baseURL = 'http://localhost:3000'; 
+axios.defaults.withCredentials = true; // 🚨 CRITICAL: Allows cookies to be sent/received
 
 function App() {
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true); // ✅ Loading state
 
-  return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<LandingPage />} />
+  // ✅ 2. AUTH CHECK ON APP LOAD
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // You need to create this simple endpoint on your backend!
+        // It should just return 200 OK if the cookie is valid.
+        await axios.get("/auth/verify"); 
+        
+        // If successful, update Redux manually
+        dispatch({ type: "auth/loginSuccess" }); 
+      } catch (error) {
+        // If 401/403, ensure Redux knows we are logged out
+        dispatch({ type: "auth/logout" });
+      } finally {
+        setIsCheckingAuth(false); // Stop loading
+      }
+    };
+
+    checkAuth();
+  }, [dispatch]);
+
+  // Don't render routes until we know if the user is logged in
+  if (isCheckingAuth) return <div>Loading...</div>; 
+
+  return (
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<LandingPage />} />
       
-      {/* FIX: If the user is logged in, navigating to /login redirects to /dashboard */}
-      <Route 
-        path="/login" 
-        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LogIn />} 
-      />
+      <Route 
+        path="/login" 
+        element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <LogIn />} 
+      />
 
-      {/* Protected Routes */}
-      <Route
-        path="/dashboard/*"
-        element={
-          <ProtectedRoute>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }
-      >
-        {/* FIX 1: Set Dashboard as the index/root path for /dashboard */}
-        <Route index element={<Dashboard />} /> 
+      {/* Protected Routes */}
+      <Route
+        path="/dashboard/*"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} /> 
+        <Route path="dailycollection" element={<TableList />} />
+        <Route path="createloan" element={<CreateCustomer/>} />
         
-        {/* Path: /dashboard/dailycollection */}
-        <Route path="dailycollection" element={<TableList />} />
+        {/* ✅ 3. FIXED ROUTING LOGIC */}
+        {/* /dashboard/customers -> Shows the LIST of customers */}
+        <Route path="customers" element={<CustomerDetail />} /> 
         
-        <Route path="createloan" element={<CreateCustomer/>} />
-        
-        {/* FIX 2: Consolidate customer detail routes into one clear parameterized route */}
-        {/* Path: /dashboard/customers/:id */}
-        <Route path="customers" element={<CustomerDetail />} />
-<Route path="customers/:id" element={<CustomerDetail />} />
-        {/* Catch-all for unknown /dashboard sub-routes */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Route>
+        {/* /dashboard/customers/123 -> Shows the DETAILS of one customer */}
+        <Route path="customers/:id" element={<CustomerDetail />} />
 
-      {/* Catch-all for unknown routes */}
-      <Route path="*" element={<Navigate to="/" />} />
-    </Routes>
-  );
+        {/* Catch-all */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+  );
 }
 
 export default App;

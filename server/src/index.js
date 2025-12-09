@@ -1,29 +1,32 @@
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors"; // ✅ Import CORS
+import cors from "cors";
+import cookieParser from "cookie-parser"; 
 
 // Import all route modules
+import authRoutes from "./routes/auth.js"; 
 import customerRoutes from "./routes/Customer.route.js";
 import loanRoutes from "./routes/Loans.route.js";
-// import installmentRoutes from "./routes/Installment.route.js"; // optional
+// import installmentRoutes from "./routes/Installment.route.js"; 
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-// ✅ Enable CORS for your frontend origin
-app.use(cors({
-  origin: "*", // or use "*" to allow all origins
-  credentials: true
-}));
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
+app.use(cookieParser()); 
 
-// Mount routes
+// ✅ CORS: Correct setup for Cookies
+app.use(cors({
+  origin: "http://localhost:5173", // MUST match your React frontend URL exactly
+  credentials: true                // Required for cookies to work
+}));
+
+// ✅ Mount Routes
+app.use("/auth", authRoutes);
 app.use("/customers", customerRoutes);
 app.use("/loans", loanRoutes);
-// app.use("/installments", installmentRoutes); // optional
 
 // Home route
 app.get("/", (req, res) => {

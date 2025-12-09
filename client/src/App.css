@@ -5,7 +5,7 @@
 *
 h1, h2,h3{
   /* color:#f7d997 */
-  color: var(--color-golden);
+  color: var(--color-header);
 }
 .p{
  

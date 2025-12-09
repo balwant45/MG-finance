@@ -1,127 +1,272 @@
-import { PrismaClient, Prisma } from "@prisma/client";
-const prisma = new PrismaClient();
-// customer creation
 import { generateInstallmentsForLoan } from "./Installment.controllers.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {  Prisma } from "@prisma/client";
+import { prisma } from "../db/pisma.js";
+
 
 export const createCustomer = async (req, res) => {
-  try {
-    // const loan = typeof req.body.loan === 'string' ? JSON.parse(req.body.loan) : req.body.loan;
-    // const guarantor = typeof req.body.guarantor === 'string' ? JSON.parse(req.body.guarantor) : req.body.guarantor;
+  try {
+    // --- 1. Data Parsing ---
+    // Ensure all data is parsed correctly from FormData strings
+    const rawLoan = typeof req.body.loan === 'string' ? JSON.parse(req.body.loan) : req.body.loan;
+    const rawGuarantor = typeof req.body.guarantor === 'string' ? JSON.parse(req.body.guarantor) : req.body.guarantor;
 
-    const {
-      name,
-      fatherName,
-      contactNo,
-      altContactNo,
-      aadharNo,
-      srNo,
-      occupation,
-      city,
-      address,
-      loan,
-      guarantor,
-    } = req.body;
+    const {
+      name, fatherName, contactNo, altContactNo, aadharNo, srNo, occupation, city, address,
+    } = req.body;
 
-    // Upload image to Cloudinary
-    const localImagePath = req.file?.path;
-    const cloudinaryResult = await uploadOnCloudinary(localImagePath);
-    const imageUrl = cloudinaryResult?.secure_url;
+    // 1. Get and sanitize key inputs
+    const principal = new Prisma.Decimal(rawLoan.loanAmount);
+    // totalEmi is used for the divisor and the loop count in the Installment controller
+    const totalEmi = rawLoan.totalEmi ? parseInt(rawLoan.totalEmi, 10) : 0; 
+    // Interest Rate is required for calculation
+    const interestRatePercentage = rawLoan.interestRate ? new Prisma.Decimal(rawLoan.interestRate) : new Prisma.Decimal(0);
 
-    // Prepare guarantor data if provided
-    let guarantorData = undefined;
-    if (guarantor) {
-      guarantorData = {
-        guarantors: {
-          create: [
-            {
-              guarantor: {
-                create: {
-                  name: guarantor.name,
-                  relationToBorrower: guarantor.relationToBorrower,
-                  phone: guarantor.phone,
-                  address: guarantor.address,
-                  city: guarantor.city,
-                  occupation: guarantor.occupation,
-                  idProofType: guarantor.idProofType,
-                  idProofNumber: guarantor.idProofNumber,
-                  notes: guarantor.notes,
-                },
-              },
-              role: "Primary",
-            },
-          ],
-        },
-      };
-    }
+    const oneHundred = new Prisma.Decimal(100);
 
-    // Create customer with nested loan and optional guarantor
-    const newCustomer = await prisma.customer.create({
-      data: {
-        name,
-        fatherName,
-        contactNo,
-        altContactNo,
-        aadharNo,
+    // 2. Calculate Total Interest Amount: Principal * (Rate / 100)
+    const calculatedInterestAmount = principal.mul(interestRatePercentage).div(oneHundred);
 
-        occupation,
-        city,
-        address,
-        profileImageUrl: imageUrl,
-        loans: {
-          create: [
-            {
-              loanNumber: loan.loanNumber,
-              loanDate: new Date(loan.loanDate),
-              loanType: loan.loanType,
-              status: loan.status,
-              loanAmount: new Prisma.Decimal(loan.loanAmount),
-              disbursedAmount: loan.disbursedAmount
-                ? new Prisma.Decimal(loan.disbursedAmount)
-                : undefined,
-              interestRate: loan.interestRate
-                ? new Prisma.Decimal(loan.interestRate)
-                : undefined,
-              interestAmount: loan.interestAmount
-                ? new Prisma.Decimal(loan.interestAmount)
-                : undefined,
-              totalAmount: loan.totalAmount
-                ? new Prisma.Decimal(loan.totalAmount)
-                : undefined,
-              emiAmount: loan.emiAmount
-                ? new Prisma.Decimal(loan.emiAmount)
-                : undefined,
-              totalEmi: loan.totalEmi,
-              tenure: loan.tenure,
-              installmentFrequency: loan.installmentFrequency,
-              ...guarantorData,
-            },
-          ],
-        },
-      },
-    include: {
+    // 3. Calculate Total Payable Amount: Principal + Interest
+    const calculatedTotalAmount = principal.add(calculatedInterestAmount); 
+
+    // 4. Calculate EMI Amount: Total Amount / Total EMIs
+    let calculatedEmiAmount = new Prisma.Decimal(0);
+
+    if (totalEmi > 0) {
+        const totalEmiDecimal = new Prisma.Decimal(totalEmi);
+        calculatedEmiAmount = calculatedTotalAmount.div(totalEmiDecimal);
+        // Round to 2 decimal places for financial accuracy
+        calculatedEmiAmount = calculatedEmiAmount.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    }
+    
+    // --- 3. Final Loan Data Object ---
+    const loanData = {
+      loanNumber: rawLoan.loanNumber,
+      loanDate: new Date(rawLoan.loanDate),
+      loanType: rawLoan.loanType,
+      status: rawLoan.status,
+      installmentFrequency: rawLoan.installmentFrequency,
+      
+      // MANDATORY Fields (Calculated/Sanitized)
+      loanAmount: principal,
+      interestRate: interestRatePercentage,
+      totalEmi: totalEmi,
+      interestAmount: calculatedInterestAmount,
+      totalAmount: calculatedTotalAmount,
+      emiAmount: calculatedEmiAmount,
+      balance: calculatedTotalAmount, // Initial balance
+
+      // Optional Fields (Sanitized)
+      tenure: rawLoan.tenure ? parseInt(rawLoan.tenure, 10) : undefined,
+      disbursedAmount: rawLoan.disbursedAmount 
+            ? new Prisma.Decimal(rawLoan.disbursedAmount) 
+            : undefined,
+    };
+    
+    // --- 4. Image Upload ---
+    const localImagePath = req.file?.path;
+    const cloudinaryResult = await uploadOnCloudinary(localImagePath);
+    const imageUrl = cloudinaryResult?.secure_url;
+
+    // --- 5. Guarantor Data Preparation ---
+    let loanGuarantorData = {};
+    if (rawGuarantor && rawGuarantor.name) {
+      loanGuarantorData = {
+        guarantors: {
+          create: [{
+            role: "Primary",
+            guarantor: {
+              create: {
+                name: rawGuarantor.name,
+                relationToBorrower: rawGuarantor.relationToBorrower,
+                phone: rawGuarantor.phone,
+                address: rawGuarantor.address,
+                city: rawGuarantor.city,
+                occupation: rawGuarantor.occupation,
+                idProofType: rawGuarantor.idProofType,
+                idProofNumber: rawGuarantor.idProofNumber,
+                notes: rawGuarantor.notes,
+              },
+            },
+          }],
+        },
+      };
+    }
+    
+    // --- 6. Create Customer with Nested Writes ---
+    const newCustomer = await prisma.customer.create({
+      data: {
+        name, fatherName, contactNo, altContactNo, aadharNo, occupation, city, address,
+        // srNo, // Uncomment if srNo is a field in your Customer model
+        profileImageUrl: imageUrl,
+        loans: {
+          create: [
+            {
+              ...loanData, 
+              ...loanGuarantorData, 
+            },
+          ],
+        },
+      },
+      include: {
         loans: {
           select: { id: true }
         }
       }
     });
-    
-    // ✅ CHANGE 2: Call the installment generator
-    const newLoanId = newCustomer.loans[0]?.id; // Get the ID of the first (and only) loan created
+    
+    // --- 7. Generate Installments ---
+    const newLoanId = newCustomer.loans[0]?.id;
 
-    if (newLoanId) {
-        await generateInstallmentsForLoan(newLoanId);
-        console.log(`Installments generated for new loan ID: ${newLoanId}`);
-    } else {
-        console.warn('Loan ID was not returned after creation. Installments skipped.');
-    }
+    if (newLoanId) {
+        await generateInstallmentsForLoan(newLoanId);
+        console.log(`Installments generated for new loan ID: ${newLoanId}`);
+    } else {
+        console.warn('Loan ID was not returned after creation. Installments skipped.');
+    }
 
-    res.status(201).json(newCustomer);
-  } catch (error) {
-    console.error("Error creating customer with loan:", error.message);
-    res.status(500).json({ error: "Internal server error" });
-  }
+    res.status(201).json(newCustomer);
+  } catch (error) {
+    console.error("CRITICAL Error creating customer with loan:", error.stack); 
+    res.status(500).json({ error: "Internal server error: " + error.message });
+  }
 };
+
+// export const createCustomer = async (req, res) => {
+//   try {
+//     // 🛑 FIX 1: JSON Parsing
+//     // This correctly handles the stringified 'loan' and 'guarantor' fields sent 
+//     // from the frontend via FormData, converting them into usable JavaScript objects.
+//     const rawLoan = typeof req.body.loan === 'string' ? JSON.parse(req.body.loan) : req.body.loan;
+//     const rawGuarantor = typeof req.body.guarantor === 'string' ? JSON.parse(req.body.guarantor) : req.body.guarantor;
+
+//     // Destructure customer fields. We avoid destructuring 'loan' and 'guarantor' 
+//     // from req.body as we will use the parsed and converted 'raw' or 'loanData' variables.
+//     const {
+//       name,
+//       fatherName,
+//       contactNo,
+//       altContactNo,
+//       aadharNo,
+//       srNo,
+//       occupation,
+//       city,
+//       address,
+//     } = req.body;
+
+//     // --- Prepare Loan Data with Type Conversions ---
+//     // 🛑 FIX 2: Type conversion for Int (totalEmi, tenure) and Decimal fields.
+//     const loanData = {
+//       loanNumber: rawLoan.loanNumber,
+//       loanDate: new Date(rawLoan.loanDate),
+//       loanType: rawLoan.loanType,
+//       status: rawLoan.status,
+//       installmentFrequency: rawLoan.installmentFrequency,
+
+//       // Convert Int fields (from string to number)
+//       totalEmi: rawLoan.totalEmi ? parseInt(rawLoan.totalEmi, 10) : undefined,
+//       tenure: rawLoan.tenure ? parseInt(rawLoan.tenure, 10) : undefined,
+
+//       // Convert Decimal fields (from string to Prisma.Decimal)
+//       loanAmount: new Prisma.Decimal(rawLoan.loanAmount),
+//       disbursedAmount: rawLoan.disbursedAmount
+//         ? new Prisma.Decimal(rawLoan.disbursedAmount)
+//         : undefined,
+//       interestRate: rawLoan.interestRate
+//         ? new Prisma.Decimal(rawLoan.interestRate)
+//         : undefined,
+//       interestAmount: rawLoan.interestAmount
+//         ? new Prisma.Decimal(rawLoan.interestAmount)
+//         : undefined,
+//       totalAmount: rawLoan.totalAmount
+//         ? new Prisma.Decimal(rawLoan.totalAmount)
+//         : undefined,
+//       emiAmount: rawLoan.emiAmount
+//         ? new Prisma.Decimal(rawLoan.emiAmount)
+//         : undefined,
+//     };
+    
+//     // Upload image to Cloudinary
+//     const localImagePath = req.file?.path;
+//     const cloudinaryResult = await uploadOnCloudinary(localImagePath);
+//     const imageUrl = cloudinaryResult?.secure_url;
+
+//     // Prepare guarantor data if provided
+//     let guarantorData = undefined;
+//     if (rawGuarantor) { // Use the parsed object: rawGuarantor
+//       guarantorData = {
+//         guarantors: {
+//           create: [
+//             {
+//               guarantor: {
+//                 create: {
+//                   name: rawGuarantor.name, // Use rawGuarantor fields
+//                   relationToBorrower: rawGuarantor.relationToBorrower,
+//                   phone: rawGuarantor.phone,
+//                   address: rawGuarantor.address,
+//                   city: rawGuarantor.city,
+//                   occupation: rawGuarantor.occupation,
+//                   idProofType: rawGuarantor.idProofType,
+//                   idProofNumber: rawGuarantor.idProofNumber,
+//                   notes: rawGuarantor.notes,
+//                 },
+//               },
+//               role: "Primary",
+//             },
+//           ],
+//         },
+//       };
+//     }
+
+//     // Create customer with nested loan and optional guarantor
+//     const newCustomer = await prisma.customer.create({
+//       data: {
+//         name,
+//         fatherName,
+//         contactNo,
+//         altContactNo,
+//         aadharNo,
+//         // srNo, // Ensure srNo is included if it exists in your schema
+//         occupation,
+//         city,
+//         address,
+//         profileImageUrl: imageUrl,
+//         loans: {
+//           create: [
+//             {
+//               //  FIX 3: Use the pre-converted loanData object. 
+//               // This is cleaner and ensures all types are correct.
+//               ...loanData, 
+//               ...guarantorData, 
+//             },
+//           ],
+//         },
+//       },
+//       include: {
+//         loans: {
+//           select: { id: true }
+//         }
+//       }
+//     });
+    
+//     // ✅ Keep: Call the installment generator
+//     const newLoanId = newCustomer.loans[0]?.id;
+
+//     if (newLoanId) {
+//         await generateInstallmentsForLoan(newLoanId);
+//         console.log(`Installments generated for new loan ID: ${newLoanId}`);
+//     } else {
+//         console.warn('Loan ID was not returned after creation. Installments skipped.');
+//     }
+
+//     res.status(201).json(newCustomer);
+//   } catch (error) {
+//     console.error("CRITICAL Error creating customer with loan:", error.message);
+//     // Send a detailed error response for better debugging
+//     res.status(500).json({ error: "Internal server error: " + error.message });
+//   }
+// };
 // find by id
 export const getCustomerById = async (req, res) => {
   const customerId = parseInt(req.params.id);
@@ -146,41 +291,6 @@ export const getCustomerById = async (req, res) => {
   }
 };
 //search by name and number
-// export const searchCustomers=async (req, res)=>{
-//   try {
-//     const {name, contactNo}=req.query;
-//     if (!name && !contactNo) {
-//     return res.status(400).json({error:'please provide name or contact number'})
-//     }
-//     const customers= await prisma.customer.findMany({
-//       where:{
-//         OR:[
-//       name && {
-//         name: {
-//           contains: name,
-//           mode: 'insensitive',
-//         },
-//       },
-//       contactNo && {
-//         contactNo: {
-//           contains: contactNo,
-//           mode: 'insensitive',
-//         },
-//       },
-//     ].filter(Boolean),
-//       }
-//     });
-//     res.json(customers);
-//     console.log('Search query:', { name, contactNo });
-
-//   } catch (error) {
-//     console.error('error searching customers', error.message);
-//     res.status(500).json({error:'internal server error'})
-
-//   }
-// }
-// Fetch all loan data for a specific customer, consolidated for the frontend
-// In your loan.controllers.js file:
 
 // Fetch all loan data for a specific customer, consolidated for the frontend
 export const getCustomerLoans = async (req, res) => {
@@ -192,7 +302,7 @@ export const getCustomerLoans = async (req, res) => {
     // 1. Find the latest loan for the customer
     const loan = await prisma.loan.findFirst({
       where: { customerId },
-      orderBy: { startDate: "desc" }, // Assuming you have a startDate field
+      orderBy: { startDate: "desc" }, 
       include: {
         installments: true,
         transactions: {
@@ -232,7 +342,7 @@ export const getCustomerLoans = async (req, res) => {
         balance: remainingBalance.toFixed(2), // Use calculated balance
         type: loan.loanType,
         status: loan.status,
-        tenure: `${loan.totalEmi} months`,
+        tenure: `${loan.totalEmi} days`,
       },
       transactions:
         loan.transactions.map((t) => ({
@@ -293,36 +403,7 @@ export const searchCustomers = async (req, res) => {
       .json({ error: "Internal server error occurred during search." });
   }
 };
-// view all loans for a customer
-// export const getCustomerProfile = async (req, res) => {
-//   const customerId = parseInt(req.params.id);
-//   if (isNaN(customerId))
-//     return res.status(400).json({ error: "Invalid customer ID" });
 
-//   try {
-//     const customer = await prisma.customer.findUnique({
-//       where: { id: customerId },
-//       include: {
-//         loans: {
-//           include: {
-//             guarantors: {
-//               include: { guarantor: true },
-//             },
-//             installments: true,
-//             transactions: true,
-//           },
-//         },
-//       },
-//     });
-
-//     if (!customer) return res.status(404).json({ error: "Customer not found" });
-
-//     res.json(customer);
-//   } catch (error) {
-//     console.error("Error fetching profile:", error.message);
-//     res.status(500).json({ error: "Internal server error" });
-//   }
-// };
 export const getCustomerProfile = async (req, res) => {
     const customerId = parseInt(req.params.id);
 

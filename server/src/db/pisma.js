@@ -1,4 +1,4 @@
-// src/db/prisma.js
+
 import { PrismaClient } from '@prisma/client';
 
 // Create a single PrismaClient instance for the whole app
