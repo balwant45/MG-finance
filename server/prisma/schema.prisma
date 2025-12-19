@@ -79,9 +79,10 @@ model Transaction {
   code      String    // e.g., K1005x01
   date      DateTime  // Transaction date/time
   amount    Decimal   @db.Decimal(10,2) // Amount
-  type      String    // Credit, Debit
-  loanId    Int       // FK → Loan
-  loan      Loan      @relation(fields: [loanId], references: [id])
+  type      String    // 'Credit' (In), 'Debit' (Out)
+  category  String    @default("Loan_Repayment")// e.g., 'Loan_Disbursement', 'Loan_Repayment', 'Capital_Investment', 'Expense'
+  loanId    Int?      // Now optional! Allows transactions without a loan
+  loan      Loan?     @relation(fields: [loanId], references: [id])
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 

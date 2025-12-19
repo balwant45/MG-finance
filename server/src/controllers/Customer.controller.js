@@ -465,7 +465,7 @@ export const getCustomerProfile = async (req, res) => {
                 closingBalance: balanceAmount.toFixed(2), // Use the 'balance' field from Loan
                 type: latestLoan.loanType || 'N/A',
                 status: latestLoan.status || 'N/A',
-                tenure: `${latestLoan.tenure || 'N/A'} months`,
+                tenure: `${latestLoan.tenure || 'N/A'} days`,
                 installmentAmount: latestLoan.emiAmount?.toString() || '0.00',
             };
 

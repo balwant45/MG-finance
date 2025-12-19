@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js"; 
 import customerRoutes from "./routes/Customer.route.js";
 import loanRoutes from "./routes/Loans.route.js";
+import { getDashboardSummary } from "./controllers/Dashboard.controller.js";
 // import installmentRoutes from "./routes/Installment.route.js"; 
 
 dotenv.config();
@@ -25,6 +26,7 @@ app.use(cors({
 
 // ✅ Mount Routes
 app.use("/auth", authRoutes);
+ app.get("/summary", getDashboardSummary);
 app.use("/customers", customerRoutes);
 app.use("/loans", loanRoutes);
 

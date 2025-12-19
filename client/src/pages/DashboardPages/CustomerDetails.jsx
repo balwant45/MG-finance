@@ -261,7 +261,7 @@ disabled={isLoading}
  <h3 className="font-semibold text-xl mb-4 text-gray-800">
  {searchResults.length > 0
  ? `Found ${searchResults.length} Matches for "${searchTerm}" - Please Select:`
-: "All Customers (Click to View Profile):"}
+: "All Customers"}
  </h3>
 <div className="overflow-x-auto max-h-96">
  <table className="min-w-full divide-y divide-gray-200">
@@ -273,7 +273,7 @@ disabled={isLoading}
  <th className="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">City</th>
  </tr>
  </thead>
-<tbody className="bg-white divide-y divide-gray-100">
+<tbody className="bg-white divide-y divide-black">
  {(searchResults.length > 0 ? searchResults : allCustomers).map(
  renderCustomerRow
  )}
@@ -282,11 +282,11 @@ disabled={isLoading}
  </div>
 </div>
  )}
- {/* --- CUSTOMER DETAILS SECTION (Matching Image Structure) --- */}
+ {/* CUSTOMER DETAILS SECTION */}
  {currentCustomer && (
  <div className="space-y-6 mt-8">
  {/* 1. Customer Name and Loan Button Box */}
- <div className="bg-gray-100 p-6 rounded-lg shadow-inner">
+ <div className="bg-gray-100 p-6 border border-black rounded-lg shadow-inner">
  <div className="flex justify-between items-start">
 <div>
 <h2 className="text-2xl font-bold text-gray-800">
@@ -307,12 +307,15 @@ disabled={isLoading}
  </button>
 </div>
 
- {/* Loan Summary Table - Mimicking the image structure using a flex/grid layout */}
+ {/* Loan Summary Table */}
  <div className="mt-4 pt-4 border-t border-gray-300">
  <div className="flex justify-between text-xs font-semibold uppercase text-gray-600 mb-2">
- <span>Loan Start Date</span> <span>Loan Closing Date</span>
-<span>Loan Amount</span> <span>Closing Balance</span>
- <span>Loan Type</span> <span>Status</span>
+ <span>Loan Start Date</span>
+  <span>Loan Closing Date</span>
+<span>Loan Amount</span>
+ <span>Closing Balance</span>
+ <span>Loan Type</span>
+<span>Status</span>
  <span>Tenure</span>
  <span className="text-right">Instalment Amount</span>
  </div>
@@ -321,7 +324,7 @@ disabled={isLoading}
 {currentCustomer.loanSummary?.startDate || "N/A"}
  </span>
  <span className="font-medium">
- {currentCustomer.loanSummary?.closingDate || "N/A"}
+ {currentCustomer.loanSummary?.endDate || "N/A"}
  </span>
  <span className="font-medium">
  ₹{currentCustomer.loanSummary?.amount || "N/A"}
@@ -353,7 +356,7 @@ disabled={isLoading}
  {/* 2. Detail and Transaction Boxes */}
  <div className="">
  {/* Personal Details Box */}
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+      <div className="bg-white p-6 rounded-lg shadow-lg border border-black">
        <h3 className="font-semibold text-lg mb-4 border-b pb-2">
     Personal Details
    </h3>
