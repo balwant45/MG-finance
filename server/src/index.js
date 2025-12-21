@@ -20,7 +20,7 @@ app.use(cookieParser());
 
 // ✅ CORS: Correct setup for Cookies
 app.use(cors({
-  origin: "http://localhost:5173", // MUST match your React frontend URL exactly
+  origin: "*", // MUST match your React frontend URL exactly
   credentials: true                // Required for cookies to work
 }));
 
