@@ -20,7 +20,7 @@ app.use(cookieParser());
 
 // ✅ CORS: Correct setup for Cookies
 app.use(cors({
-  origin: "*", // MUST match your React frontend URL exactly
+  origin: "https://www.mgfinances.com", // MUST match your React frontend URL exactly
   credentials: true                // Required for cookies to work
 }));
 
