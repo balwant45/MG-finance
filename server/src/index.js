@@ -19,11 +19,29 @@ app.use(express.json());
 app.use(cookieParser()); 
 
 // ✅ CORS: Correct setup for Cookies
-app.use(cors({
-  origin:"https://www.mgfinances.com/",// origin: "http://localhost:5173", // MUST match your React frontend URL exactly
-  credentials: true                // Required for cookies to work
-}));
+// app.use(cors({
+//   origin:"https://www.mgfinances.com",// origin: "http://localhost:5173", // MUST match your React frontend URL exactly
+//   credentials: true                // Required for cookies to work
+// }));
+// index.js (Backend)
 
+const allowedOrigins = [
+  "https://www.mgfinances.com",
+  "http://localhost:5173" // Vite's default port
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
 // ✅ Mount Routes
 app.use("/auth", authRoutes);
  app.get("/summary", getDashboardSummary);
