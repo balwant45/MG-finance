@@ -5,7 +5,8 @@ import "./customerdetail.css";
 
 // Assuming you have set the global base URL in index.js, 
 // using this local definition for clarity and fallback.
-const API_BASE_URL = "http://localhost:3000";
+// const API_BASE_URL = "http://localhost:3000";
+const API_BASE_URL = "https://mg-finance.onrender.com";
 
 // Helper component for uniform detail rows (No change)
 const DetailRow = ({ label, value, className = "" }) => (
@@ -255,7 +256,7 @@ disabled={isLoading}
 </div>
  )}
 
- {/* --- 🎯 NEW: MULTIPLE SEARCH RESULTS / ALL CUSTOMERS TABLE --- */}
+ {/* ---  MULTIPLE SEARCH RESULTS / ALL CUSTOMERS TABLE --- */}
  {(searchResults.length > 0 || showAllTable) && (
  <div className="bg-white p-6 rounded-lg shadow-xl border border-gray-200 mt-6">
  <h3 className="font-semibold text-xl mb-4 text-gray-800">
@@ -286,77 +287,71 @@ disabled={isLoading}
  {currentCustomer && (
  <div className="space-y-6 mt-8">
  {/* 1. Customer Name and Loan Button Box */}
- <div className="bg-gray-100 p-6 border border-black rounded-lg shadow-inner">
- <div className="flex justify-between items-start">
-<div>
-<h2 className="text-2xl font-bold text-gray-800">
-{currentCustomer.name || "N/A"}{" "}
- <span className="font-normal text-gray-600 text-base">
- s/o {currentCustomer.fatherName || "Father Name N/A"}{" "}
-</span>{" "}
-</h2>
- <p className="text-sm text-gray-600">
- {currentCustomer.contactNo || "N/A"}{" "}
-</p>
- </div>
- <button
- onClick={handleAddLoan}
- className="bg-green-600 text-white px-4 py-2 rounded font-medium hover:bg-green-700 transition"
- >
- Add New Loan
- </button>
-</div>
+<div className="bg-[#3B4F2A] md:bg-gray-100 p-4 sm:p-6 border border-black/10 md:border-black rounded-[2rem] md:rounded-lg shadow-xl text-white md:text-gray-800 transition-all duration-300">
+  {/* Header Section: Name & Button */}
+  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+    <div>
+      <h2 className="text-xl sm:text-2xl font-bold">
+        {currentCustomer.name || "N/A"}{" "}
+        <span className="block sm:inline font-normal opacity-80 md:text-gray-600 text-sm sm:text-base">
+          s/o {currentCustomer.fatherName || "Father Name N/A"}
+        </span>
+      </h2>
+      <p className="text-xs sm:text-sm opacity-70 md:text-gray-600 mt-1">
+        {currentCustomer.contactNo || "N/A"}
+      </p>
+    </div>
+    
+    <button
+      onClick={handleAddLoan}
+      className="w-full sm:w-auto bg-green-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-green-700 transition shadow-lg active:scale-95"
+    >
+      Add New Loan
+    </button>
+  </div>
 
- {/* Loan Summary Table */}
- <div className="mt-4 pt-4 border-t border-gray-300">
- <div className="flex justify-between text-xs font-semibold uppercase text-gray-600 mb-2">
- <span>Loan Start Date</span>
-  <span>Loan Closing Date</span>
-<span>Loan Amount</span>
- <span>Closing Balance</span>
- <span>Loan Type</span>
-<span>Status</span>
- <span>Tenure</span>
- <span className="text-right">Instalment Amount</span>
- </div>
- <div className="flex justify-between text-sm text-gray-800">
- <span className="font-medium">
-{currentCustomer.loanSummary?.startDate || "N/A"}
- </span>
- <span className="font-medium">
- {currentCustomer.loanSummary?.endDate || "N/A"}
- </span>
- <span className="font-medium">
- ₹{currentCustomer.loanSummary?.amount || "N/A"}
- </span>
- <span className="font-medium">
-₹{currentCustomer.loanSummary?.closingBalance || "N/A"}
-</span>
- <span className="font-medium">
-{currentCustomer.loanSummary?.type || "N/A"}
- </span>
- <span
- className={`font-medium ${
- currentCustomer.loanSummary?.status === "Active"
- ? "text-green-600"
- : "text-red-600"
- }`}
- >
- {currentCustomer.loanSummary?.status || "N/A"}
- </span>
- <span className="font-medium">
- {currentCustomer.loanSummary?.tenure || "N/A"}
- </span>
- <span className="font-medium text-right">
- ₹{currentCustomer.loanSummary?.installmentAmount || "N/A"}
- </span>
- </div>
- </div>
+  {/* Loan Summary Grid: 2 columns on mobile, Flex row on desktop */}
+  <div className="mt-6 pt-4 border-t border-white/20 md:border-gray-300">
+    <h4 className="md:hidden text-[10px] uppercase font-bold mb-4 opacity-50 tracking-widest">
+      Loan Details Summary
+    </h4>
+    
+    <div className="grid grid-cols-2 md:flex md:justify-between gap-y-6 gap-x-4">
+      {/* Detail Item Helper */}
+      {[
+        { label: "Start Date", value: currentCustomer.loanSummary?.startDate },
+        { label: "End Date", value: currentCustomer.loanSummary?.endDate },
+        { label: "Amount", value: `₹${currentCustomer.loanSummary?.amount}` },
+        { label: "Balance", value: `₹${currentCustomer.loanSummary?.closingBalance}` },
+        { label: "Type", value: currentCustomer.loanSummary?.type },
+        { 
+          label: "Status", 
+          value: currentCustomer.loanSummary?.status,
+          isStatus: true 
+        },
+        { label: "Tenure", value: currentCustomer.loanSummary?.tenure },
+        { label: "Inst. Amt", value: `₹${currentCustomer.loanSummary?.installmentAmount}` }
+      ].map((item, idx) => (
+        <div key={idx} className="flex flex-col">
+          <span className="text-[10px] sm:text-xs font-semibold uppercase opacity-60 md:text-gray-600 mb-1">
+            {item.label}
+          </span>
+          <span className={`text-sm sm:text-base font-medium truncate ${
+            item.isStatus && item.value === "Active" 
+              ? "text-green-400 md:text-green-600" 
+              : item.isStatus ? "text-red-400 md:text-red-600" : ""
+          }`}>
+            {item.value || "N/A"}
+          </span>
+        </div>
+      ))}
+    </div>
+  </div>
 </div>
  {/* 2. Detail and Transaction Boxes */}
  <div className="">
  {/* Personal Details Box */}
-      <div className="bg-white p-6 rounded-lg shadow-lg border border-black">
+      <div className="grid grid-cols-1 p-1 justify-around bg-white md:p-6 rounded-lg shadow-lg border border-black">
        <h3 className="font-semibold text-lg mb-4 border-b pb-2">
     Personal Details
    </h3>

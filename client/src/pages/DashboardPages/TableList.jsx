@@ -3,8 +3,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 // 🛠️ CONFIG: Set API URL to the correct localhost endpoint
-const API_URL = "http://localhost:3000/loans/daily-collection";
-const API_UPDATE_URL = "http://localhost:3000/loans/installments";
+const API_URL = "https://mg-finance.onrender.com/loans/daily-collection";
+const API_UPDATE_URL = "https://mg-finance.onrender.com/loans/installments";
 
 // Helper: Format date to YYYY-MM-DD for input default value
 const formatDateToInput = (date) => {

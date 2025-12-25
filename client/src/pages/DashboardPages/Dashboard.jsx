@@ -44,7 +44,7 @@ function Dashboard() {
         const fetchDashboardData = async () => {
             try {
                 // Ensure this URL matches your backend port (default 5000 or 3000)
-                const response = await fetch("http://localhost:3000/summary");
+                const response = await fetch("https://mg-finance.onrender.com/summary");
                 
                 if (response.ok) {
                     const data = await response.json();
