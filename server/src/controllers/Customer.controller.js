@@ -456,11 +456,16 @@ export const getCustomerProfile = async (req, res) => {
             const totalAmount = parseFloat(latestLoan.totalAmount?.toString() || '0');
             const balanceAmount = parseFloat(latestLoan.balance?.toString() || totalAmount);
             
+            // dynamic Closing date
+            const lastInst = latestLoan.installments[latestLoan.installments.length - 1];
+        const derivedClosingDate = lastInst?.dueDate 
+            ? lastInst.dueDate.toISOString().split('T')[0] 
+            : 'N/A';
             loanSummary = {
                 id: latestLoan.id,
                 startDate: latestLoan.loanDate ? latestLoan.loanDate.toISOString().split('T')[0] : 'N/A',
                 // Assuming you don't track an 'endDate' and need to calculate it or use 'N/A'
-                closingDate: 'N/A', // Or derive if possible
+                closingDate: derivedClosingDate,
                 amount: latestLoan.loanAmount?.toString() || '0.00',
                 closingBalance: balanceAmount.toFixed(2), // Use the 'balance' field from Loan
                 type: latestLoan.loanType || 'N/A',
