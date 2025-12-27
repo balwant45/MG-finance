@@ -320,7 +320,7 @@ disabled={isLoading}
       {/* Detail Item Helper */}
       {[
         { label: "Start Date", value: currentCustomer.loanSummary?.startDate },
-        { label: "End Date", value: currentCustomer.loanSummary?.endDate },
+        { label: "End Date", value: currentCustomer.loanSummary?.closingDate },
         { label: "Amount", value: `₹${currentCustomer.loanSummary?.amount}` },
         { label: "Balance", value: `₹${currentCustomer.loanSummary?.closingBalance}` },
         { label: "Type", value: currentCustomer.loanSummary?.type },
