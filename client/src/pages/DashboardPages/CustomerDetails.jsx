@@ -40,6 +40,7 @@ export default function CustomerDetail() {
  const [currentCustomer, setCurrentCustomer] = useState(null); 
  const [allCustomers, setAllCustomers] = useState([]);
  const [showAllTable, setShowAllTable] = useState(false);
+ const [selectedLoanIndex, setSelectedLoanIndex] = useState(0);
 const {id} =useParams()
  const navigate = useNavigate();
 
@@ -51,40 +52,35 @@ const {id} =useParams()
   setSearchResults([]); 
   setShowAllTable(false);
 
-  try {
-   // Step 2: Call the consolidated profile route with the selected ID
-   const summaryResponse = await axios.get(
-    `${API_BASE_URL}/customers/${customerId}/profile`
-   ); 
-        
-      // Ensure the dates on the consolidated summary are formatted for display
-      const customerData = summaryResponse.data;
-      customerData.recentTransactions = customerData.recentTransactions.map(tx => ({
-          ...tx,
-          date: formatDate(tx.date)
-      }));
-      customerData.emiLedger = customerData.emiLedger.map(emi => ({
-          ...emi,
-          date: formatDate(emi.date)
-      }));
+ try {
+        const response = await axios.get(`${API_BASE_URL}/customers/${customerId}/profile`);
+        const data = response.data;
 
+        // 🎯 IMPORTANT: Map through the NEW 'allLoans' array to format dates for EACH loan
+        if (data.allLoans) {
+            data.allLoans = data.allLoans.map(loan => ({
+                ...loan,
+                loanSummary: {
+                    ...loan.loanSummary,
+                    startDate: formatDate(loan.loanSummary.startDate),
+                    closingDate: formatDate(loan.loanSummary.closingDate),
+                },
+                emiLedger: loan.emiLedger.map(emi => ({
+                    ...emi,
+                    date: formatDate(emi.date)
+                }))
+            }));
+        }
 
-   setCurrentCustomer(customerData);
-if (customerName === "Loading..." || !customerName) {
-    setSearchTerm(customerData.name); 
-} else {
-    setSearchTerm(customerName);
-}
-      
-  } catch (err) {
-   console.error("Detail fetch failed:", err);
-   setSearchError(
-    err.response?.data?.error || "Failed to fetch customer details. Check your network or server status."
-   );
-  } finally {
-   setIsLoading(false);
-  }
- }, []);
+        setCurrentCustomer(data);
+        setSearchTerm(customerName === "Loading..." ? data.name : customerName);
+        setSelectedLoanIndex(0); // Reset to first loan on new search
+    } catch (err) {
+        setSearchError("Failed to fetch profile.", err);
+    } finally {
+        setIsLoading(false);
+    }
+}, []);
 useEffect(() => {
     if (id) {
       // We pass the ID from the URL. 
@@ -284,183 +280,129 @@ disabled={isLoading}
 </div>
  )}
  {/* CUSTOMER DETAILS SECTION */}
- {currentCustomer && (
- <div className="space-y-6 mt-8">
- {/* 1. Customer Name and Loan Button Box */}
-<div className="bg-[#3B4F2A] md:bg-gray-100 p-4 sm:p-6 border border-black/10 md:border-black rounded-[2rem] md:rounded-lg shadow-xl text-white md:text-gray-800 transition-all duration-300">
-  {/* Header Section: Name & Button */}
-  <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-    <div>
-      <h2 className="text-xl sm:text-2xl font-bold">
-        {currentCustomer.name || "N/A"}{" "}
-        <span className="block sm:inline font-normal opacity-80 md:text-gray-600 text-sm sm:text-base">
-          s/o {currentCustomer.fatherName || "Father Name N/A"}
-        </span>
-      </h2>
-      <p className="text-xs sm:text-sm opacity-70 md:text-gray-600 mt-1">
-        {currentCustomer.contactNo || "N/A"}
-      </p>
-    </div>
-    
-    <button
-      onClick={handleAddLoan}
-      className="w-full sm:w-auto bg-green-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-green-700 transition shadow-lg active:scale-95"
-    >
-      Add New Loan
-    </button>
-  </div>
 
-  {/* Loan Summary Grid: 2 columns on mobile, Flex row on desktop */}
-  <div className="mt-6 pt-4 border-t border-white/20 md:border-gray-300">
-    <h4 className="md:hidden text-[10px] uppercase font-bold mb-4 opacity-50 tracking-widest">
-      Loan Details Summary
-    </h4>
-    
-    <div className="grid grid-cols-2 md:flex md:justify-between gap-y-6 gap-x-4">
-      {/* Detail Item Helper */}
-      {[
-        { label: "Start Date", value: currentCustomer.loanSummary?.startDate },
-        { label: "End Date", value: currentCustomer.loanSummary?.closingDate },
-        { label: "Amount", value: `₹${currentCustomer.loanSummary?.amount}` },
-        { label: "Balance", value: `₹${currentCustomer.loanSummary?.closingBalance}` },
-        { label: "Type", value: currentCustomer.loanSummary?.type },
-        { 
-          label: "Status", 
-          value: currentCustomer.loanSummary?.status,
-          isStatus: true 
-        },
-        { label: "Tenure", value: currentCustomer.loanSummary?.tenure },
-        { label: "Inst. Amt", value: `₹${currentCustomer.loanSummary?.installmentAmount}` }
-      ].map((item, idx) => (
-        <div key={idx} className="flex flex-col">
-          <span className="text-[10px] sm:text-xs font-semibold uppercase opacity-60 md:text-gray-600 mb-1">
-            {item.label}
-          </span>
-          <span className={`text-sm sm:text-base font-medium truncate ${
-            item.isStatus && item.value === "Active" 
-              ? "text-green-400 md:text-green-600" 
-              : item.isStatus ? "text-red-400 md:text-red-600" : ""
-          }`}>
-            {item.value || "N/A"}
-          </span>
-        </div>
-      ))}
-    </div>
-  </div>
-</div>
- {/* 2. Detail and Transaction Boxes */}
- <div className="">
- {/* Personal Details Box */}
-      <div className="grid grid-cols-1 p-1 justify-around bg-white md:p-6 rounded-lg shadow-lg border border-black">
-       <h3 className="font-semibold text-lg mb-4 border-b pb-2">
-    Personal Details
-   </h3>
-   <div className="text-sm space-y-3">
-    <DetailRow
-   label="Aadhaar No."
-   value={currentCustomer.aadharNo || "N/A"}
-    />
-    <DetailRow
-   label="Alternate No."
-   value={currentCustomer.alternateNo || "N/A"}
-    />
-    <DetailRow
-   label="Contact No."
-   value={currentCustomer.contactNo || "N/A"}
-    />
-    <DetailRow
-   label="Occupation"
-   value={currentCustomer.occupation || "N/A"}
-    />
-    <DetailRow
-   label="Address"
-   value={currentCustomer.address || "N/A"}
-    />
-    <DetailRow
-   label="Guarantor"
-   value={currentCustomer.guarantor || "N/A"}
-    />
-   </div>
-  </div>
+{currentCustomer && (
+  <div className="space-y-6 mt-8">
+    {/* --- 1. MINIMALIST LOAN SWITCHER --- */}
+    {currentCustomer.allLoans.length > 1 && (
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        {currentCustomer.allLoans.map((loan, idx) => (
+          <button
+            key={loan.loanSummary.id}
+            onClick={() => setSelectedLoanIndex(idx)}
+            className={`px-4 py-2 rounded-full text-xs font-bold transition-all border whitespace-nowrap ${
+              selectedLoanIndex === idx 
+              ? "bg-[#3B4F2A] text-white border-black shadow-md" 
+              : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+            }`}
+          >
+            Loan ID: {loan.loanSummary.id} • {loan.loanSummary.status}
+          </button>
+        ))}
+      </div>
+    )}
 
-  {/* Recent Transactions Box */}
-{/*   <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-   <h3 className="font-semibold text-lg mb-4 border-b pb-2">
-    Recent Transactions
-   </h3>
-   {currentCustomer.recentTransactions &&
-   currentCustomer.recentTransactions.length > 0 ? (
-    <div className="text-sm space-y-1">
-   <div className="flex justify-between text-xs font-semibold text-gray-600 pb-1 border-b">
-    <span>Date</span> <span>Amount</span>
-   </div>
-   {currentCustomer.recentTransactions.map((tx, index) => (
-    <div key={index} className="flex justify-between py-1">
-     <span>{tx.date}</span>
-     <span className="font-medium text-green-700">
-            ₹{tx.amount}
-           </span>
+    {/* --- 2. SELECTED LOAN DATA WRAPPER --- */}
+    {(() => {
+      const activeLoan = currentCustomer.allLoans[selectedLoanIndex] || currentCustomer.allLoans[0];
+      if (!activeLoan) return null;
+
+      return (
+        <>
+          {/* Main Loan Summary Card */}
+          <div className="bg-[#3B4F2A] md:bg-gray-100 p-4 sm:p-6 border border-black/10 md:border-black rounded-[2rem] md:rounded-lg shadow-xl text-white md:text-gray-800 transition-all duration-300">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+              <div className="flex flex-row items-center gap-4">
+                <img 
+                  src={currentCustomer.profileImageUrl || "https://via.placeholder.com/150"} 
+                  alt="Profile" 
+                  className="w-16 h-16 rounded-full object-cover border-2 border-white" 
+                />
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold">
+                    {currentCustomer.name} <span className="text-sm font-normal opacity-80 md:text-gray-600">s/o {currentCustomer.fatherName}</span>
+                  </h2>
+                  <p className="text-xs opacity-70 md:text-gray-500">{currentCustomer.contactNo}</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleAddLoan} 
+                className="w-full sm:w-auto bg-green-600 text-white px-6 py-2 rounded-xl font-medium hover:bg-green-700 shadow-lg"
+              >
+                Add New Loan
+              </button>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-white/20 md:border-gray-300">
+              <div className="grid grid-cols-2 md:flex md:justify-between gap-y-6 gap-x-4">
+                {[
+                  { label: "Start Date", value: activeLoan.loanSummary.startDate },
+                  { label: "End Date", value: activeLoan.loanSummary.closingDate },
+                  { label: "Amount", value: `₹${activeLoan.loanSummary.amount}` },
+                  { label: "Balance", value: `₹${activeLoan.loanSummary.closingBalance}` },
+                  { label: "Type", value: activeLoan.loanSummary.type },
+                  { label: "Status", value: activeLoan.loanSummary.status, isStatus: true },
+                  { label: "Tenure", value: activeLoan.loanSummary.tenure },
+                  { label: "Inst. Amt", value: `₹${activeLoan.loanSummary.installmentAmount}` }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex flex-col">
+                    <span className="text-[10px] sm:text-xs font-semibold uppercase opacity-60 md:text-gray-500">{item.label}</span>
+                    <span className={`text-sm sm:text-base font-medium truncate ${
+                      item.isStatus && item.value === "Active" ? "text-green-400 md:text-green-600" : ""
+                    }`}>
+                      {item.value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-         ))}
-        </div>
-       ) : (
-        <p className="text-sm text-gray-500">
-         No recent transactions found.
-        </p>
-       )}
-      </div> */}
-     </div>
-     {/* 3. EMI/Ledger Table */}
-     <div className="bg-white p-6 rounded-lg shadow-lg border border-gray-200">
-      <h3 className="font-semibold text-lg mb-4 border-b pb-2">
-       EMI Ledger / Installments
-      </h3>
-      {currentCustomer.emiLedger &&
-      currentCustomer.emiLedger.length > 0 ? (
-       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-gray-200">
-         <thead className="bg-gray-50">
-          <tr>
-           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Sl No.
-           </th>
-           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Date
-           </th>
-           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            EMI Amount
-           </th>
-           <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Debit/Paid
-           </th>
-           <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-            Balance
-           </th>
-          </tr>
-         </thead>
-         <tbody className="bg-white divide-y divide-gray-200 text-sm">
-          {currentCustomer.emiLedger.map((emi, index) => (
-           <tr key={index} className="hover:bg-gray-50">
-            <td className="px-4 py-2">{emi.slNo || index + 1}</td>
-            <td className="px-4 py-2">{emi.date}</td>
-            <td className="px-4 py-2">₹{emi.emiAmount}</td>
-            <td className="px-4 py-2 text-green-700 font-medium">
-             ₹{emi.debit}
-            </td>
-            <td className="px-4 py-2 text-right">₹{emi.balance}</td>
-           </tr>
-          ))}
-         </tbody>
-        </table>
-       </div>
-      ) : (
-       <p className="text-sm text-gray-500">
-        No installment ledger data available for this customer.
-       </p>
-      )}
-     </div>
-    </div>
-   )}
+
+          {/* Personal Details */}
+          <div className="grid grid-cols-1 p-4 bg-white md:p-6 rounded-lg shadow-lg border border-black">
+            <h3 className="font-semibold text-lg mb-4 border-b pb-2 text-gray-800">Personal Details</h3>
+            <div className="text-sm space-y-3">
+              <DetailRow label="Aadhaar No." value={currentCustomer.aadharNo} />
+              <DetailRow label="Alternate No." value={currentCustomer.alternateNo} />
+              <DetailRow label="Occupation" value={currentCustomer.occupation} />
+              <DetailRow label="Guarantor" value={activeLoan.guarantor} />
+              <DetailRow label="Address" value={currentCustomer.address} />
+            </div>
+          </div>
+
+          {/* EMI Ledger Table */}
+          <div className="bg-white p-4 md:p-6 rounded-lg shadow-lg border border-gray-200">
+            <h3 className="font-semibold text-lg mb-4 border-b pb-2 text-gray-800">EMI Ledger (Loan #{activeLoan.loanSummary.id})</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Sl No.</th>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">EMI Amount</th>
+                    <th className="px-4 py-2 text-left text-xs font-bold text-gray-500 uppercase">Debit/Paid</th>
+                    <th className="px-4 py-2 text-right text-xs font-bold text-gray-500 uppercase">Balance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 bg-white">
+                  {activeLoan.emiLedger.map((emi, index) => (
+                    <tr key={index} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-2">{emi.slNo}</td>
+                      <td className="px-4 py-2">{formatDate(emi.date)}</td>
+                      <td className="px-4 py-2 font-medium">₹{emi.emiAmount}</td>
+                      <td className="px-4 py-2 text-green-700 font-bold">₹{emi.debit}</td>
+                      <td className="px-4 py-2 text-right font-medium">₹{emi.balance}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      );
+    })()}
+  </div>
+)}
   </div>
  );
 }

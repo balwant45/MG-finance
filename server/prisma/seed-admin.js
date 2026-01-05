@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 export async function seedAdmin() {
   console.log('🌱 Seeding Admin...');
   
-  const password = 'Fatehpur';
+  const password = 'admin123';
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -14,7 +14,7 @@ export async function seedAdmin() {
     where: { email: 'admin@mgfinance.com' },
     update: {},
     create: {
-      name: 'Manjit Singh',
+      name: 'Ballu Singh',
       email: 'admin@mgfinance.com',
       password: hashedPassword,
     },

@@ -95,41 +95,26 @@ export const createCustomer = async (req, res) => {
     }
     
     // --- 6. Create Customer with Nested Writes ---
-   // --- 6. Upsert Customer (Handle Existing or New) ---
-const newCustomer = await prisma.customer.upsert({
-  where: { aadharNo: aadharNo }, // Checks if this Aadhar already exists
-  update: {
-    // If they exist, update their info (optional)
-    occupation,
-    city,
-    address,
-    profileImageUrl: imageUrl || undefined,
-    loans: {
-      create: [{
-        ...loanData,
-        ...loanGuarantorData,
-      }],
-    },
-  },
-  create: {
-    // If they don't exist, create a new record
-    name, fatherName, contactNo, altContactNo, aadharNo, occupation, city, address,
-    profileImageUrl: imageUrl,
-    loans: {
-      create: [{
-        ...loanData,
-        ...loanGuarantorData,
-      }],
-    },
-  },
-  include: {
-    loans: {
-      orderBy: { createdAt: 'desc' },
-      take: 1,
-      select: { id: true }
-    }
-  }
-});
+    const newCustomer = await prisma.customer.create({
+      data: {
+        name, fatherName, contactNo, altContactNo, aadharNo, occupation, city, address,
+        // srNo, // Uncomment if srNo is a field in your Customer model
+        profileImageUrl: imageUrl,
+        loans: {
+          create: [
+            {
+              ...loanData, 
+              ...loanGuarantorData, 
+            },
+          ],
+        },
+      },
+      include: {
+        loans: {
+          select: { id: true }
+        }
+      }
+    });
     
     // --- 7. Generate Installments ---
     const newLoanId = newCustomer.loans[0]?.id;
@@ -146,7 +131,142 @@ const newCustomer = await prisma.customer.upsert({
     console.error("CRITICAL Error creating customer with loan:", error.stack); 
     res.status(500).json({ error: "Internal server error: " + error.message });
   }
-};               
+};
+
+// export const createCustomer = async (req, res) => {
+//   try {
+//     // 🛑 FIX 1: JSON Parsing
+//     // This correctly handles the stringified 'loan' and 'guarantor' fields sent 
+//     // from the frontend via FormData, converting them into usable JavaScript objects.
+//     const rawLoan = typeof req.body.loan === 'string' ? JSON.parse(req.body.loan) : req.body.loan;
+//     const rawGuarantor = typeof req.body.guarantor === 'string' ? JSON.parse(req.body.guarantor) : req.body.guarantor;
+
+//     // Destructure customer fields. We avoid destructuring 'loan' and 'guarantor' 
+//     // from req.body as we will use the parsed and converted 'raw' or 'loanData' variables.
+//     const {
+//       name,
+//       fatherName,
+//       contactNo,
+//       altContactNo,
+//       aadharNo,
+//       srNo,
+//       occupation,
+//       city,
+//       address,
+//     } = req.body;
+
+//     // --- Prepare Loan Data with Type Conversions ---
+//     // 🛑 FIX 2: Type conversion for Int (totalEmi, tenure) and Decimal fields.
+//     const loanData = {
+//       loanNumber: rawLoan.loanNumber,
+//       loanDate: new Date(rawLoan.loanDate),
+//       loanType: rawLoan.loanType,
+//       status: rawLoan.status,
+//       installmentFrequency: rawLoan.installmentFrequency,
+
+//       // Convert Int fields (from string to number)
+//       totalEmi: rawLoan.totalEmi ? parseInt(rawLoan.totalEmi, 10) : undefined,
+//       tenure: rawLoan.tenure ? parseInt(rawLoan.tenure, 10) : undefined,
+
+//       // Convert Decimal fields (from string to Prisma.Decimal)
+//       loanAmount: new Prisma.Decimal(rawLoan.loanAmount),
+//       disbursedAmount: rawLoan.disbursedAmount
+//         ? new Prisma.Decimal(rawLoan.disbursedAmount)
+//         : undefined,
+//       interestRate: rawLoan.interestRate
+//         ? new Prisma.Decimal(rawLoan.interestRate)
+//         : undefined,
+//       interestAmount: rawLoan.interestAmount
+//         ? new Prisma.Decimal(rawLoan.interestAmount)
+//         : undefined,
+//       totalAmount: rawLoan.totalAmount
+//         ? new Prisma.Decimal(rawLoan.totalAmount)
+//         : undefined,
+//       emiAmount: rawLoan.emiAmount
+//         ? new Prisma.Decimal(rawLoan.emiAmount)
+//         : undefined,
+//     };
+    
+//     // Upload image to Cloudinary
+//     const localImagePath = req.file?.path;
+//     const cloudinaryResult = await uploadOnCloudinary(localImagePath);
+//     const imageUrl = cloudinaryResult?.secure_url;
+
+//     // Prepare guarantor data if provided
+//     let guarantorData = undefined;
+//     if (rawGuarantor) { // Use the parsed object: rawGuarantor
+//       guarantorData = {
+//         guarantors: {
+//           create: [
+//             {
+//               guarantor: {
+//                 create: {
+//                   name: rawGuarantor.name, // Use rawGuarantor fields
+//                   relationToBorrower: rawGuarantor.relationToBorrower,
+//                   phone: rawGuarantor.phone,
+//                   address: rawGuarantor.address,
+//                   city: rawGuarantor.city,
+//                   occupation: rawGuarantor.occupation,
+//                   idProofType: rawGuarantor.idProofType,
+//                   idProofNumber: rawGuarantor.idProofNumber,
+//                   notes: rawGuarantor.notes,
+//                 },
+//               },
+//               role: "Primary",
+//             },
+//           ],
+//         },
+//       };
+//     }
+
+//     // Create customer with nested loan and optional guarantor
+//     const newCustomer = await prisma.customer.create({
+//       data: {
+//         name,
+//         fatherName,
+//         contactNo,
+//         altContactNo,
+//         aadharNo,
+//         // srNo, // Ensure srNo is included if it exists in your schema
+//         occupation,
+//         city,
+//         address,
+//         profileImageUrl: imageUrl,
+//         loans: {
+//           create: [
+//             {
+//               //  FIX 3: Use the pre-converted loanData object. 
+//               // This is cleaner and ensures all types are correct.
+//               ...loanData, 
+//               ...guarantorData, 
+//             },
+//           ],
+//         },
+//       },
+//       include: {
+//         loans: {
+//           select: { id: true }
+//         }
+//       }
+//     });
+    
+//     // ✅ Keep: Call the installment generator
+//     const newLoanId = newCustomer.loans[0]?.id;
+
+//     if (newLoanId) {
+//         await generateInstallmentsForLoan(newLoanId);
+//         console.log(`Installments generated for new loan ID: ${newLoanId}`);
+//     } else {
+//         console.warn('Loan ID was not returned after creation. Installments skipped.');
+//     }
+
+//     res.status(201).json(newCustomer);
+//   } catch (error) {
+//     console.error("CRITICAL Error creating customer with loan:", error.message);
+//     // Send a detailed error response for better debugging
+//     res.status(500).json({ error: "Internal server error: " + error.message });
+//   }
+// };
 // find by id
 export const getCustomerById = async (req, res) => {
   const customerId = parseInt(req.params.id);
@@ -305,7 +425,7 @@ export const getCustomerProfile = async (req, res) => {
 
         if (!customer) return res.status(404).json({ error: 'Customer not found.' });
 
-        // Map all loans into the structure expected by the frontend
+        // 🎯 Process all loans instead of just one
         const loansData = customer.loans.map(loan => {
             const totalAmount = parseFloat(loan.totalAmount?.toString() || '0');
             const balanceAmount = parseFloat(loan.balance?.toString() || totalAmount);
@@ -320,13 +440,9 @@ export const getCustomerProfile = async (req, res) => {
                     closingBalance: balanceAmount.toFixed(2),
                     type: loan.loanType || 'N/A',
                     status: loan.status || 'N/A',
-                    tenure: `${loan.tenure || 'N/A'} days`,
+                    tenure: `${loan.totalEmi || 'N/A'} days`,
                     installmentAmount: loan.emiAmount?.toString() || '0.00',
                 },
-                recentTransactions: loan.transactions.map(t => ({
-                    date: t.date.toISOString().split('T')[0],
-                    amount: t.amount?.toString() || '0.00',
-                })),
                 emiLedger: loan.installments.map(i => ({
                     slNo: i.srNo,
                     date: i.dueDate.toISOString().split('T')[0],
@@ -348,14 +464,13 @@ export const getCustomerProfile = async (req, res) => {
             occupation: customer.occupation || 'N/A',
             address: customer.address || 'N/A',
             profileImageUrl: customer.profileImageUrl,
-            allLoans: loansData // 🎯 Send all loans instead of just one
+            allLoans: loansData // 🎯 Array sent to frontend
         });
 
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
-
 //adding loan for existing customer
 export const addLoanToCustomer = async (req, res) => {
   const customerId = parseInt(req.params.id);

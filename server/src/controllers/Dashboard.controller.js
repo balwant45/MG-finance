@@ -1,10 +1,42 @@
+// // Example in loan.controllers.js or a new dashboard.controllers.js
+
+// export const getDashboardSummary = async (req, res) => {
+//     try {
+//         // --- 1. Calculate Financial Metrics ---
+//         // Placeholder queries:
+//         const totalInvested = await prisma.transaction.aggregate({ _sum: { amount: true }, where: { type: 'Debit' } });
+//         const totalDisbursed = await prisma.loan.aggregate({ _sum: { disbursedAmount: true } });
+//         // Cash in Hand would require complex calculation (Invested - Disbursed + Recovered)
+
+//         // --- 2. Calculate Loan Metrics ---
+//         const totalLoans = await prisma.loan.count();
+//         const currentLoans = await prisma.loan.count({ where: { status: 'Active' } });
+//         const closedLoans = await prisma.loan.count({ where: { status: 'Closed' } });
+
+//         res.json({
+//             financial: {
+//                 amountInvested: totalInvested._sum.amount,
+//                 amountDisbursed: totalDisbursed._sum.disbursedAmount,
+//                 cashInHand: 'Calculate based on transactions...', 
+//             },
+//             loanStats: {
+//                 totalLoans,
+//                 currentLoans,
+//                 closedLoans,
+//             }
+//         });
+
+//     } catch (error) {
+//         console.error("Error fetching dashboard data:", error);
+//         res.status(500).json({ error: "Failed to fetch dashboard summary." });
+//     }
+// };
 
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export const getDashboardSummary = async (req, res) => {
     try {
-        const today = new Date();
         // --- 1. Amount Invested (Capital Injected into Business) ---
         // We sum transactions that are marked as 'Capital_Investment'
         const investedResult = await prisma.transaction.aggregate({
@@ -32,34 +64,10 @@ export const getDashboardSummary = async (req, res) => {
         const cashInHand = (amountInvested + amountRecovered) - amountDisbursed;
 
         // --- 5. Loan Status Counts ---
-       
         const totalLoans = await prisma.loan.count();
-        
-        // Active loans: Not closed and either not past end date or has 0 balance
-        const currentLoans = await prisma.loan.count({ 
-            where: { 
-                status: 'Active',
-                endDate: { gte: today } // Due date is in future or today
-            } 
-        });
-
-        const closedLoans = await prisma.loan.count({ 
-            where: { 
-                OR: [
-                    { status: 'Closed' },
-                    { balance: 0 }
-                ]
-            } 
-        });
-
-        // 🎯 THE CORE CHANGE: Calculated Defaulted Loans
-        const defaultedLoans = await prisma.loan.count({ 
-            where: { 
-                endDate: { lt: today }, // Closing date has passed
-                balance: { gt: 0 },     // Customer still owes money
-                status: { not: 'Closed' } // Ensure it's not a loan you manually closed
-            } 
-        });
+        const currentLoans = await prisma.loan.count({ where: { status: 'Active' } });
+        const closedLoans = await prisma.loan.count({ where: { status: 'Closed' } });
+        const defaultedLoans = await prisma.loan.count({ where: { status: 'Defaulted' } });
 
         res.json({
             financial: {
@@ -72,7 +80,7 @@ export const getDashboardSummary = async (req, res) => {
                 totalLoans,
                 currentLoans,
                 closedLoans,
-                defaultedLoans, // Now dynamically calculated
+                defaultedLoans,
             }
         });
 
