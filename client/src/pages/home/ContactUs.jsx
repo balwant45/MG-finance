@@ -1,59 +1,135 @@
-// ContactUs.jsx
-import React from "react";
+import React, { useState } from "react";
+import axios from "axios";
+
+// Standard production URL setup (matches your other components)
+const API_BASE_URL = "http://localhost:3000"; 
 
 export default function ContactUs() {
+  // 1. Form States
+  const [formData, setFormData] = useState({ name: "", email: "", message: "" });
+  const [newsletterEmail, setNewsletterEmail] = useState("");
+  const [status, setStatus] = useState({ loading: false, error: null, success: null });
+
+  // 2. Input Handlers
+  const handleInputChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // 3. Submit Handler
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setStatus({ loading: true, error: null, success: null });
+
+    try {
+      // Endpoint usually routes to a mailer service or database log in your backend
+      await axios.post(`${API_BASE_URL}/contact`, formData);
+      
+      setStatus({ 
+        loading: false, 
+        error: null, 
+        success: "Thank you! Your request has been sent successfully." 
+      });
+      setFormData({ name: "", email: "", message: "" }); // Reset form
+    } catch (err) {
+      console.error("Contact form error:", err);
+      setStatus({ 
+        loading: false, 
+        success: null, 
+        error: err.response?.data?.error || "Failed to send request. Please try again later." 
+      });
+    }
+  };
+
+  const handleNewsletterSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API_BASE_URL}/newsletter/subscribe`, { email: newsletterEmail });
+      alert("Subscribed successfully!");
+      setNewsletterEmail("");
+    } catch (err) {
+      alert("Subscription failed. Please check your email.");
+    }
+  };
+
   return (
-    <section
-      id="contact"
-      className="py-16 px-6 bg-gray-50 flex flex-col items-center"
-    >
+    <section id="contact" className="py-16 px-6 bg-gray-50 flex flex-col items-center">
       <div className="max-w-6xl w-full grid md:grid-cols-2 gap-12 items-center">
-        {/* Left: Form + Newsletter */}
+        
+        {/* Left Column */}
         <div>
           <h2 className="text-3xl font-bold text-blue-700 mb-6">Contact Us</h2>
           <p className="text-gray-600 mb-8">
             Have questions about loans or need assistance? Fill out the form below and our team will reach out.
           </p>
 
+          {/* Alert Messages */}
+          {status.success && (
+            <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded shadow-sm">
+              {status.success}
+            </div>
+          )}
+          {status.error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded shadow-sm">
+              {status.error}
+            </div>
+          )}
+
           {/* Contact Form */}
-          <form className="bg-white shadow-lg rounded-lg p-6 space-y-6">
+          <form onSubmit={handleContactSubmit} className="bg-white shadow-lg rounded-lg p-6 space-y-6">
             <input
               type="text"
+              name="name"
               placeholder="Full Name"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              value={formData.name}
+              onChange={handleInputChange}
+              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
               required
+              disabled={status.loading}
             />
             <input
               type="email"
+              name="email"
               placeholder="Email"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              value={formData.email}
+              onChange={handleInputChange}
+              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
               required
+              disabled={status.loading}
             />
             <textarea
+              name="message"
               placeholder="Message"
               rows="4"
-              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
+              value={formData.message}
+              onChange={handleInputChange}
+              className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
               required
+              disabled={status.loading}
             ></textarea>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition"
+              disabled={status.loading}
+              className={`w-full bg-blue-600 text-white py-3 rounded-md font-semibold hover:bg-blue-700 transition duration-200 ${
+                status.loading ? "opacity-50 cursor-wait" : ""
+              }`}
             >
-              Submit Request
+              {status.loading ? "Sending..." : "Submit Request"}
             </button>
           </form>
 
-          {/* Newsletter Signup */}
-          <div className="mt-10 bg-blue-50 rounded-lg p-6 shadow-md">
+          {/* Newsletter Section */}
+          <div className="mt-10 bg-blue-50 rounded-lg p-6 shadow-md border border-blue-100">
             <h3 className="text-xl font-semibold text-blue-700 mb-4">Subscribe to Our Newsletter</h3>
-            <p className="text-gray-600 mb-4">
-              Stay updated with the latest loan policies, employee resources, and company announcements.
+            <p className="text-gray-600 mb-4 text-sm">
+              Stay updated with the latest loan policies and announcements.
             </p>
-            <form className="flex flex-col md:flex-row gap-4">
+            <form onSubmit={handleNewsletterSubmit} className="flex flex-col md:flex-row gap-4">
               <input
                 type="email"
                 placeholder="Enter your email"
-                className="flex-1 border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500"
+                value={newsletterEmail}
+                onChange={(e) => setNewsletterEmail(e.target.value)}
+                className="flex-1 border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
                 required
               />
               <button
@@ -66,8 +142,8 @@ export default function ContactUs() {
           </div>
         </div>
 
-        {/* Right: Inline SVG Illustration */}
-        <div className="flex justify-center items-center">
+        {/* Right: Illustration */}
+        <div className="flex justify-center items-center hidden md:flex">
           <svg
             width="100%"
             height="100%"

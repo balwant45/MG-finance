@@ -3,6 +3,7 @@ import AboutUs from "./home/AboutUs";
 import ContactUs from "./home/ContactUs";
 import logo from "../assets/mgFinanceLogo.svg";
 import hero from "../assets/bg.png";
+import finance from "../assets/Corporate finance th.png"
 import "./home/landingPage.css";
 
 export default function LandingPage() {
@@ -52,9 +53,9 @@ export default function LandingPage() {
           </p>
           <button
             className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-blue-700 transition transform hover:scale-105"
-            onClick={() => navigate("login")}
+            
           >
-            Access Dashboard
+        <a href="#contact">Contact Us</a> 
           </button>
         </section>
 

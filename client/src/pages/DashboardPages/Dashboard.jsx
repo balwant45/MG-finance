@@ -5,18 +5,18 @@ import React, { useEffect, useState } from "react";
 
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, unit = '', bgColorClass = 'bg-[#3B4F2A]' }) => (
-    <div className={`p-4 md:p-6 shadow-lg text-white ${bgColorClass} 
+    <div className={`p-4 rounded-3xl text-sm  md:p-6 shadow-lg text-white ${bgColorClass} 
                       flex flex-col items-start justify-center 
                       rounded-none md:rounded-xl`}>
         
         {/* SVG Icon */}
-        <div><svg width="54" height="60" viewBox="0 0 54 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* <div><svg width="54" height="60" viewBox="0 0 54 60" fill="none" xmlns="http://www.w3.org/2000/svg">
             <path d="M17.9816 11.25H36.0176L39.9101 7.79C41.2353 6.615 41.7303 4.7075 41.1701 2.9275C40.6098 1.1475 39.1541 0 37.4621 0H16.5371C14.8451 0 13.3893 1.15 12.8291 2.9275C12.2688 4.705 12.7638 6.615 14.0868 7.7875L17.9816 11.25Z" fill="white"/>
             <path d="M36.3262 15H17.6737C11.529 21.7025 6.75 33.4625 6.75 43.125C6.75 51.5225 10.7505 60 19.6875 60H34.875C42.5092 60 47.25 53.5325 47.25 43.125C47.25 33.4625 42.471 21.7025 36.3262 15ZM26.145 35.625H27.855C30.4852 35.625 32.625 38.0025 32.625 40.925C32.625 43.5525 30.9195 45.715 28.6875 46.155V48.1225C28.6875 49.1575 27.9315 49.9975 27 49.9975C26.0685 49.9975 25.3125 49.1575 25.3125 48.1225V46.25H23.0625C22.131 46.25 21.375 45.41 21.375 44.375C21.375 43.34 22.131 42.5 23.0625 42.5H27.855C28.6245 42.5 29.25 41.805 29.25 40.95C29.25 40.07 28.6245 39.375 27.855 39.375H26.145C23.5147 39.375 21.375 36.9975 21.375 34.075C21.375 31.4475 23.0805 29.285 25.3125 28.845V26.875C25.3125 25.84 26.0685 25 27 25C27.9315 25 28.6875 25.84 28.6875 26.875V28.75H30.9375C31.869 28.75 32.625 29.59 32.625 30.625C32.625 31.66 31.869 32.5 30.9375 32.5H26.145C25.3755 32.5 24.75 33.195 24.75 34.05C24.75 34.93 25.3755 35.625 26.145 35.625Z" fill="white"/>
-        </svg></div>
+        </svg></div> */}
         
         <h4 className="text-lg font-light mb-1">{title}</h4>
-        <p className="text-3xl font-semibold">{unit}{value}</p>
+        <p className="text-lg font-semibold md:text-3xl">{unit}{value}</p>
     </div>
 );
 
@@ -100,7 +100,7 @@ function Dashboard() {
                 <h3 className="text-xl font-medium mb-6" style={{ color: ACCENT_COLOR }}>
                     Financial Details
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <div className="rounded-4xl grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                     {financialData.map((item, index) => (
                         <StatCard
                             key={index}

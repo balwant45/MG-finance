@@ -18,8 +18,8 @@ const MobileSidebar = () => {
     <div className="mg-sidebar fixed top-0 left-0 h-full w-[35vw] md:w-[250px] z-50 shadow-2xl">
       
       {/* --- Top Header (Logo and User Icon) --- */}
-      <div className="flex justify-between items-center p-4">
-        <User className="h-6 w-6 text-white" />
+      <div className="flex justify-between items-center p-2">
+        <User className="m-auto text-white" />
         <div className="text-xl font-extrabold text-white tracking-widest">MG</div>
         <div className="text-xl font-extrabold text-white tracking-widest">FINANCE</div>
       </div>

@@ -9,6 +9,7 @@ import customerRoutes from "./routes/Customer.route.js";
 import loanRoutes from "./routes/Loans.route.js";
 import { getDashboardSummary } from "./controllers/Dashboard.controller.js";
 // import installmentRoutes from "./routes/Installment.route.js"; 
+import { handleContactForm } from "./controllers/Contact.controller.js";
 
 dotenv.config();
 
@@ -55,7 +56,7 @@ app.get("/", (req, res) => {
 
 // Static file serving
 app.use("/uploads", express.static("uploads"));
-
+app.post("/contact", handleContactForm);
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server running at http://localhost:${PORT}`);

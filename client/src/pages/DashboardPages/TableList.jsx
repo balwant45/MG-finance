@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -39,7 +39,7 @@ const StatusButton = ({ status, item, fetchCollectionData }) => {
 
     if (confirmPay) {
       try {
-        // 🛑 FIX: Use the unique ID from the item object for the URL
+        //  Use the unique ID from the item object for the URL
         await axios.post(
           `${API_UPDATE_URL}/${item.installmentId}/update-status`,
           {
@@ -71,7 +71,6 @@ const StatusButton = ({ status, item, fetchCollectionData }) => {
     </button>
   );
 };
-// -------------------------------------------------------------------
 
 function TableList() {
   const [collectionEntries, setCollectionEntries] = useState([]);
@@ -134,9 +133,9 @@ function TableList() {
     };
   }, [collectionEntries]);
 
-  // --- Row Click Handler for Navigation (Requirement 1 - Part 2) ---
+  // --- Row Click Handler for Navigation  ---
   const handleParticularsClick = (customerId) => {
-    // 🛠️ FIX: Navigate to the CustomerDetail page using the customer ID
+    // Navigate to the CustomerDetail page using the customer ID
     if (customerId) {
       navigate(`/dashboard/customers/${customerId}`);
     }
@@ -150,7 +149,7 @@ function TableList() {
 
       {/* --- TOP SUMMARY ROW (Requirements 2, 3 & 4) --- */}
       <div className="p-4 mb-6">
-        <div className="flex flex-row justify-between items-center gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
           {/* Date Selector (Requirement 4) */}
           <div className="form-control flex">
             <label className="label text-sm font-medium text-gray-700 m-2">
@@ -190,7 +189,9 @@ function TableList() {
       </div>
 
       {/* --- MAIN LEDGER TABLE --- */}
-      <div className="overflow-x-auto rounded-lg border border-base-content/5 bg-white  ">
+      {/* <div className="overflow-x-auto rounded-lg border border-base-content/5 bg-white  "> */}
+    
+ <div  className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
         <table className="table table-lg w-full">
           <thead>
             <tr className=" text-gray-400 uppercase text-sm">
@@ -223,7 +224,6 @@ function TableList() {
 
                 <td>₹{item.installmentAmount}</td>
 
-                {/* 🛠️ FIX: Render as clickable status button (Requirement 1) */}
                 <td key={`status-${index}`}>
                   <StatusButton
                     status={item.status}
@@ -232,7 +232,6 @@ function TableList() {
                       // 🎯 PASS THE UNIQUE ID HERE (This is the unique ID needed for the API URL)
                       installmentId: item.installmentId || item.srNo,
                     }}
-                    // 🎯 CRITICAL FIX: Pass the function reference explicitly
                     fetchCollectionData={fetchCollectionData}
                   />
                 </td>
