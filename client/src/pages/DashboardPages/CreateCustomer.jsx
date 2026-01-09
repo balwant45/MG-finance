@@ -101,56 +101,88 @@ const location = useLocation();
             setFormData(prev => ({ ...prev, guarantor: initialFormData.guarantor }));
         }
     };
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setIsLoading(true);
-        setMessage('');
+    const customerId = location.state?.customerId; // ID passed from Profile page
+    const data = new FormData();
 
-        // 1. Create FormData object for multipart/form-data submission
-        const data = new FormData();
-
-        // 2. Append Customer fields (simple text)
+    // If it's a NEW customer, we send all fields
+    if (!customerId) {
         data.append('name', formData.name);
         data.append('fatherName', formData.fatherName);
-        data.append('contactNo', formData.contactNo);
-        data.append('aadharNo', formData.aadharNo);
-        data.append('altContactNo', formData.altContactNo);
-        data.append('occupation', formData.occupation);
-        data.append('address', formData.address);
+        // ... append other customer fields ...
+        if (formData.profileImage) data.append('profileImage', formData.profileImage);
+    }
+
+    // For both cases, we send the Loan and Guarantor
+    data.append('loan', JSON.stringify(formData.loan));
+    if (isGuarantor) data.append('guarantor', JSON.stringify(formData.guarantor));
+
+    try {
+        // 🎯 CHOOSE THE ENDPOINT DYNAMICALLY
+        const url = customerId 
+            ? `${API_BASE_URL}/customers/${customerId}/loans` // Existing Customer path
+            : `${API_BASE_URL}/customers`;                    // New Customer path
+
+        const response = await axios.post(url, data);
+        setMessage("Success!");
+    } catch (error) {
+        setMessage("Error: " + error.message);
+    } finally {
+        setIsLoading(false);
+    }
+};
+    // const handleSubmit = async (e) => {
+    //     e.preventDefault();
+    //     setIsLoading(true);
+    //     setMessage('');
+
+    //     // 1. Create FormData object for multipart/form-data submission
+    //     const data = new FormData();
+
+    //     // 2. Append Customer fields (simple text)
+    //     data.append('name', formData.name);
+    //     data.append('fatherName', formData.fatherName);
+    //     data.append('contactNo', formData.contactNo);
+    //     data.append('aadharNo', formData.aadharNo);
+    //     data.append('altContactNo', formData.altContactNo);
+    //     data.append('occupation', formData.occupation);
+    //     data.append('address', formData.address);
         
-        // Include other simple fields required by the backend validation
-        data.append('srNo', formData.srNo); 
-        data.append('city', formData.city); 
+    //     // Include other simple fields required by the backend validation
+    //     data.append('srNo', formData.srNo); 
+    //     data.append('city', formData.city); 
 
-        // 3. Append Image File (matching the Multer field name 'profileImage')
-        if (formData.profileImage) {
-            data.append('profileImage', formData.profileImage);
-        }
+    //     // 3. Append Image File (matching the Multer field name 'profileImage')
+    //     if (formData.profileImage) {
+    //         data.append('profileImage', formData.profileImage);
+    //     }
 
-        // 4. Append Loan and Guarantor as stringified JSON
-        data.append('loan', JSON.stringify(formData.loan));
+    //     // 4. Append Loan and Guarantor as stringified JSON
+    //     data.append('loan', JSON.stringify(formData.loan));
         
-        if (isGuarantor) {
-            data.append('guarantor', JSON.stringify(formData.guarantor));
-        }
+    //     if (isGuarantor) {
+    //         data.append('guarantor', JSON.stringify(formData.guarantor));
+    //     }
 
-        try {
-            const response = await axios.post(`${API_BASE_URL}/customers`, data, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                },
-            });
-            setMessage(`Customer and Loan created successfully! ID: ${response.data.id}`);
-            setFormData(initialFormData);
-            setIsGuarantor(false);
-        } catch (error) {
-            const errorMessage = error.response?.data?.error || error.message || 'An unknown error occurred.';
-            setMessage(`Error: ${errorMessage}`);
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    //     try {
+    //         const response = await axios.post(`${API_BASE_URL}/customers`, data, {
+    //             headers: {
+    //                 'Content-Type': 'multipart/form-data',
+    //             },
+    //         });
+    //         setMessage(`Customer and Loan created successfully! ID: ${response.data.id}`);
+    //         setFormData(initialFormData);
+    //         setIsGuarantor(false);
+    //     } catch (error) {
+    //         const errorMessage = error.response?.data?.error || error.message || 'An unknown error occurred.';
+    //         setMessage(`Error: ${errorMessage}`);
+    //     } finally {
+    //         setIsLoading(false);
+    //     }
+    // };
 
     return (
         <div className="p-8 bg-base-100 min-h-screen">

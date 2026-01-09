@@ -473,62 +473,30 @@ export const getCustomerProfile = async (req, res) => {
 };
 //adding loan for existing customer
 export const addLoanToCustomer = async (req, res) => {
-  const customerId = parseInt(req.params.id);
-  if (isNaN(customerId))
-    return res.status(400).json({ error: "Invalid customer ID" });
+    const customerId = parseInt(req.params.id); // Get existing ID from URL
+    const { loan, guarantor } = req.body; // Expects JSON payload
 
-  try {
-    const { loan, guarantor } = req.body;
-
-    const newLoan = await prisma.loan.create({
-      data: {
-        customerId,
-        loanNumber: loan.loanNumber,
-        loanDate: new Date(loan.loanDate),
-        loanType: loan.loanType,
-        status: loan.status,
-        loanAmount: new Prisma.Decimal(loan.loanAmount),
-        disbursedAmount: loan.disbursedAmount
-          ? new Prisma.Decimal(loan.disbursedAmount)
-          : undefined,
-        interestRate: loan.interestRate
-          ? new Prisma.Decimal(loan.interestRate)
-          : undefined,
-        interestAmount: loan.interestAmount
-          ? new Prisma.Decimal(loan.interestAmount)
-          : undefined,
-        totalAmount: loan.totalAmount
-          ? new Prisma.Decimal(loan.totalAmount)
-          : undefined,
-        emiAmount: loan.emiAmount
-          ? new Prisma.Decimal(loan.emiAmount)
-          : undefined,
-        totalEmi: loan.totalEmi,
-        tenure: loan.tenure,
-        installmentFrequency: loan.installmentFrequency,
-        guarantors: guarantor
-          ? {
-              create: [
-                {
-                  guarantor: {
-                    create: guarantor,
-                  },
-                  role: "Primary",
-                },
-              ],
+    try {
+        const newLoan = await prisma.loan.create({
+            data: {
+                ...loan, // Loan specific details
+                customerId: customerId, // 🔗 Link to existing customer
+                guarantors: guarantor ? {
+                    create: [{ 
+                        guarantor: { create: guarantor }, 
+                        role: "Primary" 
+                    }]
+                } : undefined
             }
-          : undefined,
-      },
-    });
-    // ✅ CHANGE: Call the installment generator using the ID of the newly created loan
-    await generateInstallmentsForLoan(newLoan.id);
-    console.log(`Installments generated for new loan ID: ${newLoan.id}`);
+        });
 
-    res.status(201).json(newLoan);
-  } catch (error) {
-    console.error("Error adding loan:", error.message);
-    res.status(500).json({ error: "Internal server error" });
-  }
+        // ⚙️ Generate installments for THIS specific new loan
+        await generateInstallmentsForLoan(newLoan.id);
+
+        res.status(201).json(newLoan);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 };
 
     
