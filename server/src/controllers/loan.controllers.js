@@ -44,45 +44,78 @@ export const getLoanSummary = async (req, res) => {
   }
 };
 //recording payment on customer detail page
+// --- Inside loan.controllers.js ---
+
 export const makeLoanPayment = async (req, res) => {
   const loanId = parseInt(req.params.id);
+  const { amount, date } = req.body;
+
   if (isNaN(loanId)) return res.status(400).json({ error: "Invalid loan ID" });
 
   try {
-    const { amount, date } = req.body;
+    // We use a Transaction to ensure ALL steps succeed or ALL fail (no partial data)
+    const result = await prisma.$transaction(async (tx) => {
+      
+      // 1. Fetch the existing loan details
+      const loan = await tx.loan.findUnique({ where: { id: loanId } });
+      if (!loan) throw new Error("Loan not found");
 
-    const loan = await prisma.loan.findUnique({ where: { id: loanId } });
-    if (!loan) return res.status(404).json({ error: "Loan not found" });
+      const paymentAmount = new Prisma.Decimal(amount || 0);
+      const currentBalance = new Prisma.Decimal(loan.balance.toString());
 
-    const newTransaction = await prisma.transaction.create({
-      data: {
-        loanId,
-        code: `TXN${Date.now()}`,
-        date: new Date(date),
-        amount: new Prisma.Decimal(amount),
-        type: "Credit",
-      },
+      // 2. Create the Transaction record (For the Customer's history)
+      const newTransaction = await tx.transaction.create({
+        data: {
+          loanId,
+          code: `PAY-${Date.now()}`,
+          date: new Date(date || new Date()),
+          amount: paymentAmount,
+          type: "Credit",
+        },
+      });
+
+      // 3. Calculate New Balance
+      const updatedBalance = currentBalance.sub(paymentAmount);
+
+      // 4. Update the Loan Record
+      // This is where we update the Balance and the Status to 'Closed'
+      await tx.loan.update({
+        where: { id: loanId },
+        data: {
+          balance: updatedBalance,
+          // 🎯 AUTO-CLOSE LOGIC: If balance is 0 or less, mark as Closed
+          status: updatedBalance.lte(0) ? "Closed" : "Active" 
+        },
+      });
+
+      // 5. Update the Installment Ledger (For Dashboard and Ledger view)
+      // This ensures that the "Amount Recovered" on the dashboard increases correctly.
+      if (paymentAmount.gt(0)) {
+        await tx.installment.updateMany({
+          where: {
+            loanId: loanId,
+            status: { not: "Paid" } // Only update what hasn't been paid yet
+          },
+          data: {
+            status: "Paid",
+            // We record the amount paid in the installment table so 
+            // the Dashboard sum(amount) logic picks it up.
+            amount: loan.emiAmount 
+          }
+        });
+      }
+
+      return newTransaction;
     });
 
-    await prisma.loan.update({
-      where: { id: loanId },
-      data: {
-        // FIX: Ensure loan.balance/loan.totalAmount are converted to string before parsing for Decimal
-        balance: new Prisma.Decimal(
-          parseFloat(
-            loan.balance?.toString() || loan.totalAmount?.toString() || "0"
-          ) - parseFloat(amount)
-        ),
-        emiPaid: loan.emiPaid + 1,
-      },
+    res.status(201).json({ 
+      message: "Loan payment recorded and status updated", 
+      transaction: result 
     });
 
-    res
-      .status(201)
-      .json({ message: "Payment recorded", transaction: newTransaction });
   } catch (error) {
-    console.error("Error recording payment:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Payment Error:", error.message);
+    res.status(500).json({ error: error.message });
   }
 };
 // New function to fetch all recent installment/transaction data for the daily collection view
