@@ -10,8 +10,8 @@ import {
 const router = express.Router();
 
 // router.get("/:id/loans", getCustomerLoans);
-router.get("/loans/:id/summary", getLoanSummary);
-router.post("/loans/:id/payments", makeLoanPayment);
+router.get("/:id/summary", getLoanSummary);
+router.post("/:id/payments", makeLoanPayment);
 router.get("/daily-collection", getDailyCollectionData);
 router.post("/installments/:id/update-status", updateInstallmentStatus);
 export default router;
