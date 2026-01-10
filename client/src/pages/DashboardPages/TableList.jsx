@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
@@ -21,76 +22,97 @@ const formatDateToInput = (date) => {
 
 // --- Status Action Button Component (Requirement 1 - Button) ---
 const StatusButton = ({ status, item, fetchCollectionData }) => {
+  // 1. CHANGE: Added state to track manual amount, pre-filled with the EMI amount
+  const [receivedAmount, setReceivedAmount] = useState(item.installmentAmount);
+
   const isPaid = status === "Paid";
-  const statusClass = isPaid? "green-300": status === "Unpaid" || status === "Overdue"? "btn-error": "btn-warning";
-  const statusLabel = isPaid ? "Paid" : "Mark Paid";
+  const statusClass = isPaid ? "green-300" : status === "Unpaid" || status === "Overdue" ? "btn-error" : "btn-warning";
+  const statusLabel = isPaid ? "Paid" : "Pay";
 
-  const handleStatusUpdate = async (e) => {
-    e.stopPropagation();
-
-    if (isPaid) {
-      alert(`Installment ${item.srNo} is already paid.`);
-      return;
-    }
+  // 2. CHANGE: Updated function to accept a specific amount (manual or foreclosure)
+  const handleStatusUpdate = async (amountToProcess) => {
+    if (isPaid) return;
 
     const confirmPay = window.confirm(
-      `Confirm marking Installment #${item.srNo} for ${item.particulars} as PAID?`
+      `Confirm payment of ₹${amountToProcess} for ${item.particulars}?`
     );
 
     if (confirmPay) {
       try {
-        //  Use the unique ID from the item object for the URL
         await axios.post(
           `${API_UPDATE_URL}/${item.installmentId}/update-status`,
           {
             newStatus: "Paid",
-            amountReceived: item.installmentAmount, // Amount to debit
+            // 3. CHANGE: Now sends the passed amount instead of a hardcoded EMI
+            amountReceived: amountToProcess, 
           }
         );
 
-        alert("Status updated successfully! Refreshing data...");
+        alert("Payment recorded successfully!");
         fetchCollectionData();
       } catch (error) {
-        alert(
-          `Failed to update status: ${
-            error.response?.data?.error || "Server error"
-          }`
-        );
+        // 4. CHANGE: Handle and show exact error for testing/production debugging
+        const serverError = error.response?.data?.error || error.message || "Unknown Server Error";
+        alert(`CRITICAL ERROR: ${serverError}`);
         console.error("Status Update Failed:", error);
       }
     }
   };
 
   return (
-    <button
-      className={`btn btn-xs rounded-lg p-2 text-white ${statusClass}`}
-      onClick={handleStatusUpdate}
-      disabled={isPaid}
-    >
-      {statusLabel}
-    </button>
+    <div className="flex items-center gap-1">
+      {/* 5. CHANGE: Added input and Foreclose button, visible only if unpaid */}
+      {!isPaid && (
+        <>
+          <input
+            type="number"
+            className="input input-bordered input-xs w-20 text-black font-bold bg-white"
+            value={receivedAmount}
+            onChange={(e) => setReceivedAmount(e.target.value)}
+          />
+          <button
+            className="btn btn-xs bg-red-600 border-none text-white hover:bg-red-700"
+            title="Foreclose (Pay Full Balance)"
+            onClick={(e) => {
+                e.stopPropagation();
+                // 6. CHANGE: item.notes contains the balance as per your current mapping
+                handleStatusUpdate(item.notes); 
+            }}
+          >
+            Full
+          </button>
+        </>
+      )}
+      
+      <button
+        className={`btn btn-xs rounded-lg p-2 text-white ${statusClass}`}
+        onClick={(e) => {
+            e.stopPropagation();
+            handleStatusUpdate(receivedAmount);
+        }}
+        disabled={isPaid}
+      >
+        {statusLabel}
+      </button>
+    </div>
   );
 };
 
 function TableList() {
   const [collectionEntries, setCollectionEntries] = useState([]);
-  // eslint-disable-next-line no-unused-vars
   const [isLoading, setIsLoading] = useState(true);
 
-  // 🛠️ FIX: State for Date Selector (Requirement 4)
   const [selectedDate, setSelectedDate] = useState(
     formatDateToInput(new Date())
   );
 
-  const navigate = useNavigate(); // 🛠️ FIX: Initialize navigate hook
+  const navigate = useNavigate();
 
-  // --- Data Fetcher (Optimized with useCallback) ---
   const fetchCollectionData = useCallback(async () => {
     setIsLoading(true);
     try {
-      // 🛠️ FIX: Pass the selected date as a query parameter to the backend
       const response = await axios.get(API_URL, {
-        params: { date: selectedDate }, // Backend must read req.query.date
+        params: { date: selectedDate },
       });
       setCollectionEntries(response.data);
     } catch (error) {
@@ -99,31 +121,26 @@ function TableList() {
     } finally {
       setIsLoading(false);
     }
-  }, [selectedDate]); // 🛠️ FIX: Refetch when the selectedDate changes
+  }, [selectedDate]);
 
-  // Initial load and whenever selectedDate changes
   useEffect(() => {
     fetchCollectionData();
   }, [fetchCollectionData]);
 
-  // --- Calculation Hook (Requirements 2 & 3: Total Due, Recovered, Pending) ---
   const { totalDue, totalRecovered, pendingAmount } = useMemo(() => {
     if (!collectionEntries || collectionEntries.length === 0) {
       return { totalDue: 0, totalRecovered: 0, pendingAmount: 0 };
     }
 
-    // Ensure all string currency values are converted to numbers for calculation
     const due = collectionEntries.reduce(
       (sum, item) => sum + (parseFloat(item.installmentAmount) || 0),
       0
     );
 
-    // 🛠️ FIX: Recovered amount is the sum of debit amounts for PAID items
     const recovered = collectionEntries
       .filter((item) => item.status === "Paid")
       .reduce((sum, item) => sum + (parseFloat(item.debitAmount) || 0), 0);
 
-    // Calculate pending amount
     const pending = due - recovered;
 
     return {
@@ -133,9 +150,7 @@ function TableList() {
     };
   }, [collectionEntries]);
 
-  // --- Row Click Handler for Navigation  ---
   const handleParticularsClick = (customerId) => {
-    // Navigate to the CustomerDetail page using the customer ID
     if (customerId) {
       navigate(`/dashboard/customers/${customerId}`);
     }
@@ -147,10 +162,8 @@ function TableList() {
         Daily Collection
       </h2>
 
-      {/* --- TOP SUMMARY ROW (Requirements 2, 3 & 4) --- */}
       <div className="p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          {/* Date Selector (Requirement 4) */}
           <div className="form-control flex">
             <label className="label text-sm font-medium text-gray-700 m-2">
               Collection Date
@@ -164,13 +177,11 @@ function TableList() {
             />
           </div>
 
-          {/* Total Due Amount (Requirement 2 & 3) */}
           <div className="stat flex p-2">
             <div className="stat-title text-xs">Total Amount</div>
             <div className="stat-value text-lg text-blue-600">₹{totalDue}</div>
           </div>
 
-          {/* Recovered Amount (Requirement 3) */}
           <div className="stat flex p-2">
             <div className="stat-title text-xs">Received Amount</div>
             <div className="stat-value text-lg text-green-600">
@@ -178,7 +189,6 @@ function TableList() {
             </div>
           </div>
 
-          {/* Pending Amount (Requirement 3) */}
           <div className="stat flex p-2 ">
             <div className="stat-title text-s">Due Amount</div>
             <div className="text-lg text-red-600">
@@ -188,10 +198,7 @@ function TableList() {
         </div>
       </div>
 
-      {/* --- MAIN LEDGER TABLE --- */}
-      {/* <div className="overflow-x-auto rounded-lg border border-base-content/5 bg-white  "> */}
-    
- <div  className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
         <table className="table table-lg w-full">
           <thead>
             <tr className=" text-gray-400 uppercase text-sm">
@@ -201,7 +208,7 @@ function TableList() {
               <th>Status</th>
               <th>Debit Amount</th>
               <th>Credit Amount</th>
-              <th>Notes</th>
+              <th>Notes (Balance)</th>
             </tr>
           </thead>
           <tbody>
@@ -214,7 +221,6 @@ function TableList() {
                   {item.dueDate ? item.dueDate : item.srNo}
                 </td>
 
-                {/* 🛠️ FIX: Make Particulars clickable for navigation */}
                 <td
                   className="font-medium text-blue-600 cursor-pointer hover:underline"
                   onClick={() => handleParticularsClick(item.customerId)}
@@ -229,7 +235,6 @@ function TableList() {
                     status={item.status}
                     item={{
                       ...item,
-                      // 🎯 PASS THE UNIQUE ID HERE (This is the unique ID needed for the API URL)
                       installmentId: item.installmentId || item.srNo,
                     }}
                     fetchCollectionData={fetchCollectionData}

@@ -473,32 +473,76 @@ export const getCustomerProfile = async (req, res) => {
 };
 //adding loan for existing customer
 export const addLoanToCustomer = async (req, res) => {
-    const customerId = parseInt(req.params.id); // Get existing ID from URL
-    const { loan, guarantor } = req.body; // Expects JSON payload
+    const customerId = parseInt(req.params.id);
+    
+    // Validate ID
+    if (isNaN(customerId)) {
+        return res.status(400).json({ error: "Invalid customer ID" });
+    }
+
+    const { loan, guarantor } = req.body;
 
     try {
+        // 🎯 FIX: Manually convert strings to Prisma.Decimal and Date objects
+        // This prevents the "Inconsistent column data" or validation errors.
         const newLoan = await prisma.loan.create({
             data: {
-                ...loan, // Loan specific details
-                customerId: customerId, // 🔗 Link to existing customer
-                guarantors: guarantor ? {
-                    create: [{ 
-                        guarantor: { create: guarantor }, 
-                        role: "Primary" 
+                loanNumber: loan.loanNumber,
+                loanDate: new Date(loan.loanDate),
+                loanType: loan.loanType,
+                status: loan.status || "Active",
+                installmentFrequency: loan.installmentFrequency,
+                
+                // Financial fields must be wrapped in Prisma.Decimal
+                loanAmount: new Prisma.Decimal(loan.loanAmount),
+                interestRate: new Prisma.Decimal(loan.interestRate || 0),
+                totalEmi: parseInt(loan.totalEmi),
+                tenure: loan.tenure ? parseInt(loan.tenure) : undefined,
+                
+                // Calculated fields (matching your createCustomer logic)
+                interestAmount: new Prisma.Decimal(loan.interestAmount || 0),
+                totalAmount: new Prisma.Decimal(loan.totalAmount || 0),
+                emiAmount: new Prisma.Decimal(loan.emiAmount || 0),
+                balance: new Prisma.Decimal(loan.totalAmount || 0), // Initial balance
+                
+                // Link to customer
+                customerId: customerId,
+
+                // Nested Guarantor creation
+                guarantors: guarantor && guarantor.name ? {
+                    create: [{
+                        role: "Primary",
+                        guarantor: {
+                            create: {
+                                name: guarantor.name,
+                                phone: guarantor.phone,
+                                address: guarantor.address,
+                                city: guarantor.city,
+                                relationToBorrower: guarantor.relationToBorrower,
+                                occupation: guarantor.occupation,
+                                idProofType: guarantor.idProofType,
+                                idProofNumber: guarantor.idProofNumber,
+                                notes: guarantor.notes,
+                            }
+                        }
                     }]
                 } : undefined
             }
         });
 
-        // ⚙️ Generate installments for THIS specific new loan
+        // ⚙️ Generate installments for this specific new loan
         await generateInstallmentsForLoan(newLoan.id);
 
+        console.log(`Loan ${newLoan.loanNumber} created for Customer ${customerId}`);
         res.status(201).json(newLoan);
+
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        console.error("LOGGING ERROR:", error.message);
+        res.status(500).json({ 
+            error: "Internal Server Error", 
+            details: error.message 
+        });
     }
 };
-
-    
 
 //full profile + loan summary

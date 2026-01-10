@@ -101,39 +101,7 @@ const location = useLocation();
             setFormData(prev => ({ ...prev, guarantor: initialFormData.guarantor }));
         }
     };
-const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
 
-    const customerId = location.state?.customerId; // ID passed from Profile page
-    const data = new FormData();
-
-    // If it's a NEW customer, we send all fields
-    if (!customerId) {
-        data.append('name', formData.name);
-        data.append('fatherName', formData.fatherName);
-        // ... append other customer fields ...
-        if (formData.profileImage) data.append('profileImage', formData.profileImage);
-    }
-
-    // For both cases, we send the Loan and Guarantor
-    data.append('loan', JSON.stringify(formData.loan));
-    if (isGuarantor) data.append('guarantor', JSON.stringify(formData.guarantor));
-
-    try {
-        // 🎯 CHOOSE THE ENDPOINT DYNAMICALLY
-        const url = customerId 
-            ? `${API_BASE_URL}/customers/${customerId}/loans` // Existing Customer path
-            : `${API_BASE_URL}/customers`;                    // New Customer path
-
-        const response = await axios.post(url, data);
-        setMessage("Success!");
-    } catch (error) {
-        setMessage("Error: " + error.message);
-    } finally {
-        setIsLoading(false);
-    }
-};
     // const handleSubmit = async (e) => {
     //     e.preventDefault();
     //     setIsLoading(true);
@@ -183,7 +151,62 @@ const handleSubmit = async (e) => {
     //         setIsLoading(false);
     //     }
     // };
+const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setMessage('');
 
+    const existingId = location.state?.customerId;
+
+    try {
+        let response;
+
+        if (existingId) {
+            // 🎯 OPTION A: JSON PAYLOAD (For Existing Customers)
+            // This populates req.body correctly without needing Multer
+            const payload = {
+                loan: formData.loan,
+                guarantor: isGuarantor ? formData.guarantor : null
+            };
+
+            response = await axios.post(
+                `${API_BASE_URL}/customers/${existingId}/loans`, 
+                payload // Sent as standard JSON
+            );
+        } else {
+            // 🎯 OPTION B: FORMDATA (For New Customers)
+            // Necessary for the profile image upload
+            const data = new FormData();
+            data.append('name', formData.name);
+            data.append('fatherName', formData.fatherName);
+            data.append('contactNo', formData.contactNo);
+            data.append('aadharNo', formData.aadharNo);
+            data.append('altContactNo', formData.altContactNo || '');
+            data.append('occupation', formData.occupation || '');
+            data.append('address', formData.address || '');
+            data.append('city', formData.city || '');
+            data.append('srNo', formData.srNo || '');
+
+            if (formData.profileImage) {
+                data.append('profileImage', formData.profileImage);
+            }
+
+            data.append('loan', JSON.stringify(formData.loan));
+            if (isGuarantor) {
+                data.append('guarantor', JSON.stringify(formData.guarantor));
+            }
+
+            response = await axios.post(`${API_BASE_URL}/customers`, data);
+        }
+
+        setMessage(`Success! ID: ${response.data.id || response.data.loanNumber}`);
+        if (!existingId) setFormData(initialFormData);
+    } catch (error) {
+        setMessage(`Error: ${error.response?.data?.error || error.message}`);
+    } finally {
+        setIsLoading(false);
+    }
+};
     return (
         <div className="p-8 bg-base-100 min-h-screen">
             <header className="flex justify-between items-center mb-8 border-b pb-4 border-gray-300">
