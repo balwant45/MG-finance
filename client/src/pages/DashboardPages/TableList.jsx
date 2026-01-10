@@ -3,11 +3,14 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
-// 🛠️ CONFIG: Set API URL to the correct localhost endpoint
+// 🛠️ CONFIGURATION: Backend API Endpoints
 const API_URL = "https://mg-finance.onrender.com/loans/daily-collection";
 const API_UPDATE_URL = "https://mg-finance.onrender.com/loans/installments";
 
-// Helper: Format date to YYYY-MM-DD for input default value
+/**
+ * HELPER: Format date objects to YYYY-MM-DD
+ * Essential for setting default values in HTML5 date inputs.
+ */
 const formatDateToInput = (date) => {
   const d = new Date(date);
   let month = "" + (d.getMonth() + 1);
@@ -20,21 +23,39 @@ const formatDateToInput = (date) => {
   return [year, month, day].join("-");
 };
 
-// --- Status Action Button Component (Requirement 1 - Button) ---
+/**
+ * COMPONENT: StatusButton
+ * Handles individual installment payments (Standard, Manual, or Foreclosure).
+ */
 const StatusButton = ({ status, item, fetchCollectionData }) => {
-  // 1. CHANGE: Added state to track manual amount, pre-filled with the EMI amount
+  // Local state to manage the amount shown in the manual input field
   const [receivedAmount, setReceivedAmount] = useState(item.installmentAmount);
 
   const isPaid = status === "Paid";
+  
+  // Dynamic styling based on current payment status
   const statusClass = isPaid ? "green-300" : status === "Unpaid" || status === "Overdue" ? "btn-error" : "btn-warning";
   const statusLabel = isPaid ? "Paid" : "Pay";
 
-  // 2. CHANGE: Updated function to accept a specific amount (manual or foreclosure)
+  /**
+   * ACTION: processPayment
+   * Triggers the API call to update installment status and loan balance.
+   */
   const handleStatusUpdate = async (amountToProcess) => {
     if (isPaid) return;
 
+    // --- LOGIC: Sanitization (Fix for Error 500) ---
+    // Backend Decimal parser crashes on symbols. We strip ₹ and commas before sending.
+    const cleanAmount = String(amountToProcess).replace(/[₹,\s]/g, "");
+
+    // Validation to prevent sending empty/invalid data to the database
+    if (!cleanAmount || isNaN(cleanAmount)) {
+      alert(`Invalid Amount: "${amountToProcess}". Please enter a valid number.`);
+      return;
+    }
+
     const confirmPay = window.confirm(
-      `Confirm payment of ₹${amountToProcess} for ${item.particulars}?`
+      `Confirm payment of ₹${cleanAmount} for ${item.particulars}?`
     );
 
     if (confirmPay) {
@@ -43,17 +64,17 @@ const StatusButton = ({ status, item, fetchCollectionData }) => {
           `${API_UPDATE_URL}/${item.installmentId}/update-status`,
           {
             newStatus: "Paid",
-            // 3. CHANGE: Now sends the passed amount instead of a hardcoded EMI
-            amountReceived: amountToProcess, 
+            amountReceived: cleanAmount, // Sends the specific amount (Manual or Full)
           }
         );
 
         alert("Payment recorded successfully!");
-        fetchCollectionData();
+        fetchCollectionData(); // Refresh the main table to reflect new balance/status
       } catch (error) {
-        // 4. CHANGE: Handle and show exact error for testing/production debugging
-        const serverError = error.response?.data?.error || error.message || "Unknown Server Error";
-        alert(`CRITICAL ERROR: ${serverError}`);
+        // --- LOGIC: Error Transparency ---
+        // Helpful for testing on Render; shows exactly why the server rejected the request.
+        const serverError = error.response?.data?.details || error.response?.data?.error || error.message;
+        alert(`BACKEND ERROR (500): ${serverError}`);
         console.error("Status Update Failed:", error);
       }
     }
@@ -61,22 +82,25 @@ const StatusButton = ({ status, item, fetchCollectionData }) => {
 
   return (
     <div className="flex items-center gap-1">
-      {/* 5. CHANGE: Added input and Foreclose button, visible only if unpaid */}
+      {/* UI: Manual entry and Full Payment options (Hidden if already Paid) */}
       {!isPaid && (
         <>
+          {/* Manual Input: Pre-filled with EMI but editable for part-payments */}
           <input
             type="number"
             className="input input-bordered input-xs w-20 text-black font-bold bg-white"
             value={receivedAmount}
             onChange={(e) => setReceivedAmount(e.target.value)}
           />
+          
+          {/* Foreclose Button: Pulls the remaining balance from item.notes */}
           <button
             className="btn btn-xs bg-red-600 border-none text-white hover:bg-red-700"
             title="Foreclose (Pay Full Balance)"
             onClick={(e) => {
                 e.stopPropagation();
-                // 6. CHANGE: item.notes contains the balance as per your current mapping
-                handleStatusUpdate(item.notes); 
+                // Pass current balance (from notes) or fallback to EMI
+                handleStatusUpdate(item.notes || item.installmentAmount); 
             }}
           >
             Full
@@ -84,6 +108,7 @@ const StatusButton = ({ status, item, fetchCollectionData }) => {
         </>
       )}
       
+      {/* Standard Submit Button */}
       <button
         className={`btn btn-xs rounded-lg p-2 text-white ${statusClass}`}
         onClick={(e) => {
@@ -98,16 +123,25 @@ const StatusButton = ({ status, item, fetchCollectionData }) => {
   );
 };
 
+/**
+ * MAIN COMPONENT: TableList
+ * Manages Daily Collection ledger, filters by date, and displays total stats.
+ */
 function TableList() {
   const [collectionEntries, setCollectionEntries] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Filter State: Defaults to current system date
   const [selectedDate, setSelectedDate] = useState(
     formatDateToInput(new Date())
   );
 
   const navigate = useNavigate();
 
+  /**
+   * DATA FETCH: Get Collection Entries
+   * Hits the endpoint with the selectedDate as a query parameter.
+   */
   const fetchCollectionData = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -123,10 +157,15 @@ function TableList() {
     }
   }, [selectedDate]);
 
+  // Refetch data automatically whenever the date selector changes
   useEffect(() => {
     fetchCollectionData();
   }, [fetchCollectionData]);
 
+  /**
+   * LOGIC: Summary Calculations
+   * Computes Total Due, Received, and Pending amounts for the top dashboard cards.
+   */
   const { totalDue, totalRecovered, pendingAmount } = useMemo(() => {
     if (!collectionEntries || collectionEntries.length === 0) {
       return { totalDue: 0, totalRecovered: 0, pendingAmount: 0 };
@@ -150,6 +189,9 @@ function TableList() {
     };
   }, [collectionEntries]);
 
+  /**
+   * NAVIGATION: Go to Customer Profile
+   */
   const handleParticularsClick = (customerId) => {
     if (customerId) {
       navigate(`/dashboard/customers/${customerId}`);
@@ -162,8 +204,10 @@ function TableList() {
         Daily Collection
       </h2>
 
+      {/* --- DASHBOARD: Top Summary Row --- */}
       <div className="p-4 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          {/* Date Selector */}
           <div className="form-control flex">
             <label className="label text-sm font-medium text-gray-700 m-2">
               Collection Date
@@ -177,6 +221,7 @@ function TableList() {
             />
           </div>
 
+          {/* Stat Cards */}
           <div className="stat flex p-2">
             <div className="stat-title text-xs">Total Amount</div>
             <div className="stat-value text-lg text-blue-600">₹{totalDue}</div>
@@ -198,6 +243,7 @@ function TableList() {
         </div>
       </div>
 
+      {/* --- LEDGER: Main Data Table --- */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
         <table className="table table-lg w-full">
           <thead>
@@ -217,10 +263,12 @@ function TableList() {
                 key={item.srNo + item.particulars + index}
                 className="hover border-gray-100"
               >
+                {/* 1. Date/SR No Column */}
                 <td className="font-medium text-gray-700">
                   {item.dueDate ? item.dueDate : item.srNo}
                 </td>
 
+                {/* 2. Clickable Customer Name */}
                 <td
                   className="font-medium text-blue-600 cursor-pointer hover:underline"
                   onClick={() => handleParticularsClick(item.customerId)}
@@ -228,8 +276,10 @@ function TableList() {
                   {item.particulars}
                 </td>
 
+                {/* 3. Expected EMI Amount */}
                 <td>₹{item.installmentAmount}</td>
 
+                {/* 4. Action Button: Integrated with Manual/Full Pay logic */}
                 <td key={`status-${index}`}>
                   <StatusButton
                     status={item.status}
@@ -241,13 +291,14 @@ function TableList() {
                   />
                 </td>
 
+                {/* 5. Actual Amounts and Ledger Notes */}
                 <td>₹{item.debitAmount}</td>
                 <td>₹{item.creditAmount}</td>
-
                 <td className="text-gray-500 text-xs">{item.notes}</td>
               </tr>
             ))}
 
+            {/* Empty State */}
             {collectionEntries.length === 0 && (
               <tr>
                 <td colSpan="7" className="flex p-4 text-gray-500">

@@ -8,6 +8,7 @@ import "./customerdetail.css";
 const API_BASE_URL = "https://mg-finance.onrender.com";
 
 // --- HELPER COMPONENTS ---
+// Uniform detail rows for Personal/Account sections
 const DetailRow = ({ label, value, className = "" }) => (
  <div className={`flex justify-between ${className}`}>
  <span className="text-gray-600 font-medium">{label}</span>{" "}
@@ -15,6 +16,7 @@ const DetailRow = ({ label, value, className = "" }) => (
  </div>
 );
 
+// Date formatter for Indian Standard display
 const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     try {
@@ -49,7 +51,7 @@ export default function CustomerDetail() {
     setShowDetails((prev) => !prev);
   };
 
- // --- 1. FUNCTION TO FETCH PROFILE ---
+ // --- 1. FUNCTION TO FETCH AND DISPLAY PROFILE ---
  const handleSelectCustomer = useCallback(async (customerId, customerName) => {
   setIsLoading(true);
   setSearchError(null);
@@ -60,6 +62,7 @@ export default function CustomerDetail() {
         const response = await axios.get(`${API_BASE_URL}/customers/${customerId}/profile`);
         const data = response.data;
 
+        // Process all loans associated with the customer for display
         if (data.allLoans) {
             data.allLoans = data.allLoans.map(loan => ({
                 ...loan,
@@ -85,24 +88,21 @@ export default function CustomerDetail() {
     }
 }, []);
 
-
- // This function takes the full remaining balance and closes the loan.
-
-// --- 2. FORECLOSE FUNCTIONALITY ---
+ // --- 2. FORECLOSE FUNCTIONALITY ---
+ // This handles paying the full remaining balance and closing the loan record.
  const handleForeclose = async (loanId, balance) => {
-    // Ensure we have a valid loanId to avoid 404
     if (!loanId) {
         alert("Error: Loan ID is missing.");
         return;
     }
 
-    // Sanitize the balance to ensure it is a clean number for the backend
+    // Sanitize the balance to ensure it is a clean number (removes ₹, commas)
     const cleanBalance = String(balance).replace(/[₹,\s]/g, "");
     
     if (window.confirm(`Are you sure you want to FORECLOSE this loan by paying the full balance of ₹${cleanBalance}?`)) {
         setIsLoading(true);
         try {
-            // 🎯 FIX: Changed URL to '/payments' (plural) to match your backend route
+            // FIX: Endpoint set to '/payments' (plural) to match your backend router.post
             await axios.post(`${API_BASE_URL}/loans/${loanId}/payments`, {
                 amount: cleanBalance,
                 date: new Date().toISOString()
@@ -110,12 +110,12 @@ export default function CustomerDetail() {
 
             alert("Loan Foreclosed Successfully!");
             
-            // Refresh the data to reflect the closed status and zero balance
+            // Re-fetch data to update balance to zero and change status to closed
             if (currentCustomer) {
                 handleSelectCustomer(currentCustomer.id, currentCustomer.name);
             }
         } catch (err) {
-            // Detailed error handling for testing
+            // Detailed error visibility for testing 404/500 issues
             const errorMessage = err.response?.status === 404 
                 ? "Backend route not found. Verify the URL is /loans/:id/payments"
                 : (err.response?.data?.error || err.message);
@@ -127,14 +127,15 @@ export default function CustomerDetail() {
         }
     }
  };
+
  // --- 3. URL PARAMETER WATCHER ---
-useEffect(() => {
+ useEffect(() => {
     if (id) {
       handleSelectCustomer(id, "Loading..."); 
     }
   }, [id, handleSelectCustomer]);
 
- // --- 4. MAIN SEARCH HANDLER ---
+ // --- 4. SEARCH HANDLERS ---
  const handleSearch = useCallback(
   async (e) => {
    if (e) e.preventDefault();
@@ -163,7 +164,7 @@ useEffect(() => {
   }, [searchTerm, navigate]
  ); 
 
- // --- 5. GET ALL CUSTOMERS ---
+ // --- 5. DATA MANAGEMENT ---
  const handleGetAllCustomers = async () => {
  setIsLoading(true);
  setSearchError(null);
@@ -184,7 +185,6 @@ useEffect(() => {
  }
  }; 
 
- // --- 6. NAVIGATION TO NEW LOAN ---
 const handleAddLoan = () => {
  if (currentCustomer && currentCustomer.id) {
     navigate("/dashboard/createloan", { state: { customerId: currentCustomer.id, customerName: currentCustomer.name } });
@@ -193,7 +193,7 @@ const handleAddLoan = () => {
  }
  }; 
 
- // --- 7. AUTO-HIDE ERROR ---
+ // --- 6. RENDER LOGIC ---
  useEffect(() => {
  if (searchError) {
     const timer = setTimeout(() => setSearchError(null), 5000);
@@ -201,7 +201,6 @@ const handleAddLoan = () => {
  }
 }, [searchError]); 
 
- // --- 8. TABLE ROW RENDERER ---
  const renderCustomerRow = (customer) => (
  <tr key={customer.id} className="border-b hover:bg-gray-100 cursor-pointer" onClick={() => navigate(`/dashboard/customers/${customer.id}`)}>
  <td className="px-4 py-3">{customer.id}</td> 
@@ -214,7 +213,7 @@ const handleAddLoan = () => {
  return (
  <div className="p-4 sm:p-6 bg-[#FFFDE7] min-h-full">
  
- {/* Header and Search Section */}
+ {/* Section: Search and View All Controls */}
  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 border-b pb-4">
  <h1 className="text-xl sm:text-3xl font-normal text-gray-800 mb-4 sm:mb-0">Customer Details</h1>
  <div className="flex flex-col sm:flex-row w-full sm:w-auto items-center">
@@ -229,7 +228,7 @@ const handleAddLoan = () => {
  {isLoading && <p className="text-center text-green-500 font-medium mb-4">Processing...</p>}
  {searchError && <div className="p-4 bg-red-100 border border-red-400 text-red-700 rounded shadow-sm mb-4"><p><strong>Error:</strong> {searchError}</p></div>}
 
- {/* Search Results Table */}
+ {/* Table for selecting from multiple search results */}
  {(searchResults.length > 0 || showAllTable) && (
  <div className="bg-white p-6 rounded-lg shadow-xl border border-gray-200 mt-6">
  <h3 className="font-semibold text-xl mb-4 text-gray-800">{searchResults.length > 0 ? `Found Matches` : "All Customers"}</h3>
@@ -244,11 +243,11 @@ const handleAddLoan = () => {
  </div>
  )}
 
- {/* Main Profile Content */}
+ {/* Section: Profile Content and Active Loan Details */}
 {currentCustomer && (
  <div className="space-y-6 mt-8">
   
-  {/* --- 1. LOAN SWITCHER PART --- */}
+  {/* --- LOAN SWITCHER PART --- */}
   {currentCustomer.allLoans.length > 1 && (
     <div className="flex flex-col gap-2">
       <span className="text-[10px] font-black uppercase text-gray-400 tracking-widest px-1">Select Active Loan</span>
@@ -289,7 +288,7 @@ const handleAddLoan = () => {
 
         return (
             <>
-                {/* Header Card with Profile and NEW Foreclose Action */}
+                {/* Section: Main Loan Summary Card with Foreclose Button */}
                 <div className="bg-[#3B4F2A] w-full justify-around md:bg-gray-100 p-5 sm:p-2 border border-black/10 md:border-black rounded-[2.5rem] md:rounded-lg shadow-xl text-white md:text-gray-800 transition-all duration-300">
                     <div className="grid col-2">
                         <div className=" flex flex-row items-center gap-4">
@@ -297,13 +296,13 @@ const handleAddLoan = () => {
                             <div>
                                 <p className="md:text-lg font-bold leading-tight tracking-tight">
                                     {currentCustomer.name}
-                                    <span className="block text-[10px] font-normal opacity-70 md:text-gray-600 uppercase tracking-widest mt-0.5">s/o {currentCustomer.fatherName}</span>
+                                    <span className="block text-[10px] font-normal opacity-70 md:text-gray-600 uppercase tracking-widest mt-0.5">{currentCustomer.fatherName}</span>
                                 </p>
                             </div>
                             <div className="items-left flex flex-wrap gap-2">
                                 <button onClick={handleAddLoan} className="bg-green-600 md:bg-[#3B4F2A] text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter hover:bg-green-700 transition shadow-lg active:scale-95 whitespace-nowrap">Add New Loan</button>
                                 
-                                {/* NEW: Foreclose Button placed in the header */}
+                                {/* FORECLOSE ACTION: Triggers full balance payment */}
                                 {activeLoan.loanSummary.status === 'Active' && (
                                     <button 
                                         onClick={() => handleForeclose(activeLoan.loanSummary.id, activeLoan.loanSummary.closingBalance)} 
@@ -337,7 +336,7 @@ const handleAddLoan = () => {
                     </div>
                 </div>
 
-                {/* Personal Details Card */}
+                {/* Section: Personal Details Card */}
                 <div className={`${showDetails ? "grid" : "hidden"} md:grid grid-cols-1 p-6 bg-white rounded-[2rem] md:rounded-lg shadow-lg border border-black/5 md:border-black mt-6`} ref={toggleDetail}>
                     <h3 className="font-black text-[11px] mb-6 border-b pb-2 text-gray-400 uppercase tracking-[0.2em]">Personal Details</h3>
                     <div className="text-sm space-y-5">
@@ -350,7 +349,7 @@ const handleAddLoan = () => {
                     </div>
                 </div>
 
-                {/* Account Summary Card (Mobile-only) */}
+                {/* Section: Account Summary Card (Mobile-only display) */}
                 <div className="grid grid-cols-1 p-6 bg-white md:hidden rounded-[2rem] md:rounded-lg shadow-lg border border-black/5 md:border-black mt-6" >
                     <h3 className="font-black text-[11px] mb-6 border-b pb-2 text-gray-400 uppercase tracking-[0.2em]">Account Details</h3>
                     <div className="text-sm space-y-5">
@@ -363,7 +362,7 @@ const handleAddLoan = () => {
                     </div>
                 </div>
 
-                {/* EMI Ledger Table */}
+                {/* Section: EMI Ledger Table */}
                 <div className="bg-white p-4 md:p-6 rounded-[2rem] md:rounded-lg shadow-lg border border-gray-100 mt-6">
                     <h3 className="font-black text-[11px] mb-6 border-b pb-2 text-gray-400 uppercase tracking-[0.2em]">EMI Ledger (Loan #{activeLoan.loanSummary.id})</h3>
                     <div className="overflow-x-auto">

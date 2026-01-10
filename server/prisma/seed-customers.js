@@ -261,7 +261,7 @@ export async function seedCustomers() {
         loanDate: '2025-09-08',
         loanNumber: 'MG-2025-08',
         loanType: 'Daily',
-        status: 'Defulter',
+        status: 'Defaulted',
         installmentFrequency: 'weekly',
         tenure: 100,
       }
@@ -970,26 +970,26 @@ export async function seedCustomers() {
       }}];
 
   // --- 5. Iterate and Create ---
-  for (const data of customerData) {
-    console.log(`Creating customer: ${data.name}...`);
+ // --- 5. Iterate and Create ---
+for (const data of customerData) {
+    console.log(`Processing entry for: ${data.name}...`);
     
-    // A. Calculate Financials
+    // A. Calculate Financials for this specific loan
     const calculated = calculateLoanData(
       data.loanDetails.loanAmount,
       data.loanDetails.interestRate,
       data.loanDetails.totalEmi
     );
 
-    // B. Check Exists
-    const existingCustomer = await prisma.customer.findUnique({
+    // B. Find or Create the Customer (Upsert logic)
+    // We use aadharNo as the unique identifier
+    let customer = await prisma.customer.findUnique({
         where: { aadharNo: data.aadharNo }
     });
 
-    let loanIdToProcess = null;
-
-    if (!existingCustomer) {
-        // C. Create Customer + Loan
-        const customer = await prisma.customer.create({
+    if (!customer) {
+        console.log(`  New Customer detected. Creating ${data.name}...`);
+        customer = await prisma.customer.create({
             data: {
               name: data.name,
               fatherName: data.fatherName,
@@ -998,47 +998,40 @@ export async function seedCustomers() {
               occupation: data.occupation,
               city: data.city,
               address: data.address,
-              loans: {
-                create: [{
-                  loanNumber: data.loanDetails.loanNumber,
-                  loanDate: new Date(data.loanDetails.loanDate),
-                  loanType: data.loanDetails.loanType,
-                  status: data.loanDetails.status,
-                  installmentFrequency: data.loanDetails.installmentFrequency,
-                  tenure: data.loanDetails.tenure,
-                  
-                  loanAmount: new Decimal(data.loanDetails.loanAmount),
-                  interestRate: new Decimal(data.loanDetails.interestRate),
-                  disbursedAmount: new Decimal(data.loanDetails.loanAmount),
-                  
-                  interestAmount: calculated.interestAmount,
-                  totalAmount: calculated.totalAmount,
-                  emiAmount: calculated.emiAmount,
-                  balance: calculated.balance,
-                  totalEmi: calculated.totalEmi,
-                  
-                  emiPaid: 0,
-                }]
-              }
-            },
-            include: { loans: { select: { id: true } } }
+            }
         });
-        loanIdToProcess = customer.loans[0]?.id;
     } else {
-        console.log(`   Customer ${data.name} already exists. Skipping.`);
+        console.log(`  Existing Customer found: ${data.name}. Adding additional loan...`);
     }
 
-    // D. Generate Installments
-    if (loanIdToProcess) {
-        console.log(`   Generating installments for Loan ID: ${loanIdToProcess}...`);
-        try {
-            await generateInstallmentsForLoan(loanIdToProcess);
-            console.log(`   ✅ Installments generated.`);
-        } catch (err) {
-            console.error(`   ❌ Error generating installments for ${data.name}:`, err.message);
+    // C. Create the Loan for this Customer
+    // This runs every time, allowing multiple loans per customer
+    const newLoan = await prisma.loan.create({
+        data: {
+          ...calculated, // interestAmount, totalAmount, emiAmount, balance, totalEmi
+          loanNumber: data.loanDetails.loanNumber,
+          loanDate: new Date(data.loanDetails.loanDate),
+          loanType: data.loanDetails.loanType,
+          status: data.loanDetails.status,
+          installmentFrequency: data.loanDetails.installmentFrequency,
+          tenure: data.loanDetails.tenure,
+          loanAmount: new Decimal(data.loanDetails.loanAmount),
+          interestRate: new Decimal(data.loanDetails.interestRate),
+          disbursedAmount: new Decimal(data.loanDetails.loanAmount),
+          emiPaid: 0,
+          customerId: customer.id // Link the loan to the customer ID we found/created
         }
+    });
+
+    // D. Generate Installments for this specific loan
+    console.log(`   Generating installments for Loan ID: ${newLoan.id}...`);
+    try {
+        await generateInstallmentsForLoan(newLoan.id);
+        console.log(`   ✅ Loan and Installments created.`);
+    } catch (err) {
+        console.error(`   ❌ Error generating installments for ${data.name}:`, err.message);
     }
-  }
+}
 
   console.log('✅ Customer Seeding finished.');
 }
