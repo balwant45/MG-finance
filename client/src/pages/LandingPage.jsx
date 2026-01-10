@@ -40,6 +40,12 @@ export default function LandingPage() {
                 </button>
               </li>
             </ul>
+             <button 
+                  onClick={() => navigate("login")}
+                  className="bg-blue-600 text-white px-2 py-2 rounded-md font-semibold hover:bg-blue-700 transition md:hidden"
+                >
+                  Employee Login
+                </button>
           </div>
         </nav>
 

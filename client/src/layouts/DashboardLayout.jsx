@@ -25,10 +25,7 @@ const [isMenuOpen, setIsMenuOpen] = useState(false);
         
         {/* 3. Navbar (Modified to include the mobile menu button) */}
         {/* The existing Navbar component should be modified to accept the toggle prop and to be hidden on mobile */}
-        
-        {/* Since the original Navbar/Sidebar structure is complex to modify without seeing their code, 
-          we will create a simple, mobile-only top bar here for the toggle button.
-        */}
+       
         <div className="sticky top-0 z-30 flex items-center justify-between p-4 md:hidden bg-[#556B2F] shadow-lg">
             <button onClick={toggleMenu} className="p-2 text-white hover:bg-white/10 rounded">
                 <Menu className="h-6 w-6" />
