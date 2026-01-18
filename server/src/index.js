@@ -19,16 +19,9 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cookieParser()); 
 
-// ✅ CORS: Correct setup for Cookies
-// app.use(cors({
-//   origin:"https://www.mgfinances.com",// origin: "http://localhost:5173", // MUST match your React frontend URL exactly
-//   credentials: true                // Required for cookies to work
-// }));
-// index.js (Backend)
-
 const allowedOrigins = [
   "https://www.mgfinances.com",
-  "http://localhost:5173" // Vite's default port
+  "http://localhost:5173" 
 ];
 
 app.use(cors({
