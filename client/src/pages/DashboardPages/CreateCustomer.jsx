@@ -35,9 +35,30 @@ function CreateCustomer() {
     const [isGuarantor, setIsGuarantor] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [message, setMessage] = useState('');
-const location = useLocation();
+    const location = useLocation();
     const existingId = location.state?.customerId;
+// 🎯 EFFECT 1: Auto-calculate EMIs based on Tenure and Frequency
+    useEffect(() => {
+    const tenure = parseInt(formData.loan.tenure, 10);
+    const freq = formData.loan.installmentFrequency;
 
+    if (tenure > 0) {
+        let emiCount = 0;
+        if (freq === 'Daily') emiCount = tenure;
+        else if (freq === 'Weekly') emiCount = Math.floor(tenure / 5);
+        else if (freq === 'Monthly 10') emiCount = Math.floor(tenure / 10);
+        else emiCount = tenure; 
+
+        // Update totalEmi in state without triggering an infinite loop
+        setFormData(prev => {
+            if (prev.loan.totalEmi === emiCount.toString()) return prev;
+            return {
+                ...prev,
+                loan: { ...prev.loan, totalEmi: emiCount.toString() }
+            };
+        });
+    }
+    }, [formData.loan.tenure, formData.loan.installmentFrequency]);
     useEffect(() => {
         const fetchExistingCustomer = async () => {
             if (existingId) {
@@ -303,6 +324,18 @@ const handleSubmit = async (e) => {
                         <label className="label font-medium">Loan ID (Number)</label>
                         <input type="text" name="loanNumber" value={formData.loan.loanNumber} onChange={handleLoanChange} required className="input input-bordered w-full" />
                     </div>
+                    {/* loan start date */}
+                    <div className="form-control mb-4">
+    <label className="label font-medium">Loan Start Date*</label>
+    <input 
+        type="date" 
+        name="loanDate" 
+        value={formData.loan.loanDate} 
+        onChange={handleLoanChange} 
+        required 
+        className="input input-bordered w-full" 
+    />
+</div>
                     {/* Loan Amount */}
                     <div className="form-control mb-4">
                         <label className="label font-medium">Loan Amount</label>

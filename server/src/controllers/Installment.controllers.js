@@ -4,42 +4,38 @@ import { prisma } from "../db/pisma.js";
 
 
 // --- Helper function to advance the date based on frequency ---
+// --- Helper function to advance the date based on frequency ---
 const getNextDueDate = (currentDate, frequency, i) => {
     let nextDate = new Date(currentDate);
 
-    // Calculate the start date of the *first* installment
-    // The first installment is due 1 period (day/week/month) after the loanDate.
-    // We use the loop counter 'i' to find the day offset.
+    // This logic ensures if start date is Jan 21, 
+    // i=1 with 5-day gap becomes Jan 26.
     switch (frequency) {
         case 'Daily':
-            // Sets the due date to i days *after* the loanDate
-            // If loanDate is Nov 25, i=1 is Nov 26.
-            nextDate.setDate(nextDate.getDate() + i); 
+            nextDate.setDate(nextDate.getDate() + i);
             break;
         case 'Weekly':
-            // Sets the due date to i weeks *after* the loanDate
+            // 🎯 FIXED: Uses 5-day gap as requested
             nextDate.setDate(nextDate.getDate() + (i * 5)); 
             break;
         case 'Monthly 10':
-            //Sets date for ten days
-            nextDate.setDate(nextDate.getDate()+ (i* 10))
+            // 🎯 FIXED: Uses 10-day gap as requested
+            nextDate.setDate(nextDate.getDate() + (i * 10));
             break;
         case 'Monthly':
-            // Sets the due date to i months *after* the loanDate
-            nextDate.setMonth(nextDate.getMonth() + i); 
+            nextDate.setMonth(nextDate.setMonth() + i); 
             break;
         default:
-            // Default to Daily if frequency is unknown
             nextDate.setDate(nextDate.getDate() + i);
             break;
     }
     return nextDate;
 };
 
-
 // --- Installment Generation Controller ---
 export const generateInstallmentsForLoan = async (loanId) => {
     // 1. Fetch Loan Data
+    
     const loan = await prisma.loan.findUnique({ 
         where: { id: loanId },
         // Select required fields for calculation and insertion
@@ -71,6 +67,7 @@ export const generateInstallmentsForLoan = async (loanId) => {
     // Initial balance is the total amount the customer must repay (Principal + Interest)
     let remainingBalance = totalAmountToRepay;
     const installments = [];
+    
 
     // --- 3. Loop and Generate Installments ---
     for (let i = 1; i <= totalInstallments; i++) {

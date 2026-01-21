@@ -5,64 +5,69 @@ import { prisma } from "../db/pisma.js";
 
 
 export const createCustomer = async (req, res) => {
-  try {
-    // --- 1. Data Parsing ---
-    // Ensure all data is parsed correctly from FormData strings
-    const rawLoan = typeof req.body.loan === 'string' ? JSON.parse(req.body.loan) : req.body.loan;
-    const rawGuarantor = typeof req.body.guarantor === 'string' ? JSON.parse(req.body.guarantor) : req.body.guarantor;
+  try {
+    // --- 1. DATA NORMALIZATION ---
+    // Handle multipart/form-data: Parse stringified JSON from frontend if necessary
+    const rawLoan = typeof req.body.loan === 'string' ? JSON.parse(req.body.loan) : req.body.loan;
+    const rawGuarantor = typeof req.body.guarantor === 'string' ? JSON.parse(req.body.guarantor) : req.body.guarantor;
 
-    const {
-      name, fatherName, contactNo, altContactNo, aadharNo, srNo, occupation, city, address,
-    } = req.body;
+    // Destructure primary customer details directly from req.body
+    const { name, fatherName, contactNo, altContactNo, aadharNo, occupation, city, address } = req.body;
 
-    // 1. Get and sanitize key inputs
-    const principal = new Prisma.Decimal(rawLoan.loanAmount);
-    // totalEmi is used for the divisor and the loop count in the Installment controller
-    const totalEmi = rawLoan.totalEmi ? parseInt(rawLoan.totalEmi, 10) : 0; 
-    // Interest Rate is required for calculation
-    const interestRatePercentage = rawLoan.interestRate ? new Prisma.Decimal(rawLoan.interestRate) : new Prisma.Decimal(0);
+    // --- 2. INPUT SANITIZATION ---
+    const principal = new Prisma.Decimal(rawLoan.loanAmount || 0);
+    const tenureDays = parseInt(rawLoan.tenure, 10) || 0;
+    const frequency = rawLoan.installmentFrequency;
 
-    const oneHundred = new Prisma.Decimal(100);
+    // --- 3. BUSINESS LOGIC: EMI COUNT CALCULATION ---
+    // Derives the number of installments based on tenure and the specific day-gaps
+    let totalEmi = 0;
+    if (tenureDays > 0) {
+        if (frequency === 'Daily') totalEmi = tenureDays;                // 1 payment/day
+        else if (frequency === 'Weekly') totalEmi = Math.floor(tenureDays / 5);   // 1 payment/5 days
+        else if (frequency === 'Monthly 10') totalEmi = Math.floor(tenureDays / 10); // 1 payment/10 days
+        else totalEmi = parseInt(rawLoan.totalEmi, 10) || 0;             // Fallback to manual count
+    }
 
-    // 2. Calculate Total Interest Amount: Principal * (Rate / 100)
-    const calculatedInterestAmount = principal.mul(interestRatePercentage).div(oneHundred);
+    // --- 4. DATE LOGIC: END DATE GENERATION ---
+    // Automatically calculates the loan expiry date by adding tenure days to start date
+    const startDate = new Date(rawLoan.loanDate);
+    const calculatedEndDate = new Date(startDate);
+    calculatedEndDate.setDate(startDate.getDate() + tenureDays);
 
-    // 3. Calculate Total Payable Amount: Principal + Interest
-    const calculatedTotalAmount = principal.add(calculatedInterestAmount); 
+    // --- 5. FINANCIAL CALCULATIONS ---
+    const interestRate = new Prisma.Decimal(rawLoan.interestRate || 0);
+    // Interest = Principal * (Rate / 100)
+    const interestAmount = principal.mul(interestRate).div(100);
+    // Total Payable = Principal + Calculated Interest
+    const totalAmount = principal.add(interestAmount);
 
-    // 4. Calculate EMI Amount: Total Amount / Total EMIs
-    let calculatedEmiAmount = new Prisma.Decimal(0);
+    // Calculate individual EMI amount: Total / Number of payments
+    let emiAmount = new Prisma.Decimal(0);
+    if (totalEmi > 0) {
+        emiAmount = totalAmount.div(new Prisma.Decimal(totalEmi))
+                               .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    }
 
-    if (totalEmi > 0) {
-        const totalEmiDecimal = new Prisma.Decimal(totalEmi);
-        calculatedEmiAmount = calculatedTotalAmount.div(totalEmiDecimal);
-        // Round to 2 decimal places for financial accuracy
-        calculatedEmiAmount = calculatedEmiAmount.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-    }
-    
-    // --- 3. Final Loan Data Object ---
-    const loanData = {
-      loanNumber: rawLoan.loanNumber,
-      loanDate: new Date(rawLoan.loanDate),
-      loanType: rawLoan.loanType,
-      status: rawLoan.status,
-      installmentFrequency: rawLoan.installmentFrequency,
-      
-      // MANDATORY Fields (Calculated/Sanitized)
-      loanAmount: principal,
-      interestRate: interestRatePercentage,
-      totalEmi: totalEmi,
-      interestAmount: calculatedInterestAmount,
-      totalAmount: calculatedTotalAmount,
-      emiAmount: calculatedEmiAmount,
-      balance: calculatedTotalAmount, // Initial balance
-
-      // Optional Fields (Sanitized)
-      tenure: rawLoan.tenure ? parseInt(rawLoan.tenure, 10) : undefined,
-      disbursedAmount: rawLoan.disbursedAmount 
-            ? new Prisma.Decimal(rawLoan.disbursedAmount) 
-            : undefined,
-    };
+    // --- 6. LOAN DATA OBJECT PREPARATION ---
+    // Consolidates calculated values for Prisma database insertion
+    const loanData = {
+        loanNumber: rawLoan.loanNumber,
+        loanDate: startDate,
+        endDate: calculatedEndDate,     // Derived end date
+        loanType: rawLoan.loanType,
+        status: rawLoan.status || "Active",
+        installmentFrequency: frequency,
+        loanAmount: principal,
+        interestRate: interestRate,
+        totalEmi: totalEmi,             // Derived EMI count
+        interestAmount: interestAmount,
+        totalAmount: totalAmount,
+        emiAmount: emiAmount,           // Derived EMI value
+        balance: totalAmount,           // Initial balance equals total payable
+        tenure: tenureDays,
+        disbursedAmount: rawLoan.disbursedAmount ? new Prisma.Decimal(rawLoan.disbursedAmount) : undefined,
+    };
     
     // --- 4. Image Upload ---
     const localImagePath = req.file?.path;
@@ -132,142 +137,6 @@ export const createCustomer = async (req, res) => {
     res.status(500).json({ error: "Internal server error: " + error.message });
   }
 };
-
-// export const createCustomer = async (req, res) => {
-//   try {
-//     // 🛑 FIX 1: JSON Parsing
-//     // This correctly handles the stringified 'loan' and 'guarantor' fields sent 
-//     // from the frontend via FormData, converting them into usable JavaScript objects.
-//     const rawLoan = typeof req.body.loan === 'string' ? JSON.parse(req.body.loan) : req.body.loan;
-//     const rawGuarantor = typeof req.body.guarantor === 'string' ? JSON.parse(req.body.guarantor) : req.body.guarantor;
-
-//     // Destructure customer fields. We avoid destructuring 'loan' and 'guarantor' 
-//     // from req.body as we will use the parsed and converted 'raw' or 'loanData' variables.
-//     const {
-//       name,
-//       fatherName,
-//       contactNo,
-//       altContactNo,
-//       aadharNo,
-//       srNo,
-//       occupation,
-//       city,
-//       address,
-//     } = req.body;
-
-//     // --- Prepare Loan Data with Type Conversions ---
-//     // 🛑 FIX 2: Type conversion for Int (totalEmi, tenure) and Decimal fields.
-//     const loanData = {
-//       loanNumber: rawLoan.loanNumber,
-//       loanDate: new Date(rawLoan.loanDate),
-//       loanType: rawLoan.loanType,
-//       status: rawLoan.status,
-//       installmentFrequency: rawLoan.installmentFrequency,
-
-//       // Convert Int fields (from string to number)
-//       totalEmi: rawLoan.totalEmi ? parseInt(rawLoan.totalEmi, 10) : undefined,
-//       tenure: rawLoan.tenure ? parseInt(rawLoan.tenure, 10) : undefined,
-
-//       // Convert Decimal fields (from string to Prisma.Decimal)
-//       loanAmount: new Prisma.Decimal(rawLoan.loanAmount),
-//       disbursedAmount: rawLoan.disbursedAmount
-//         ? new Prisma.Decimal(rawLoan.disbursedAmount)
-//         : undefined,
-//       interestRate: rawLoan.interestRate
-//         ? new Prisma.Decimal(rawLoan.interestRate)
-//         : undefined,
-//       interestAmount: rawLoan.interestAmount
-//         ? new Prisma.Decimal(rawLoan.interestAmount)
-//         : undefined,
-//       totalAmount: rawLoan.totalAmount
-//         ? new Prisma.Decimal(rawLoan.totalAmount)
-//         : undefined,
-//       emiAmount: rawLoan.emiAmount
-//         ? new Prisma.Decimal(rawLoan.emiAmount)
-//         : undefined,
-//     };
-    
-//     // Upload image to Cloudinary
-//     const localImagePath = req.file?.path;
-//     const cloudinaryResult = await uploadOnCloudinary(localImagePath);
-//     const imageUrl = cloudinaryResult?.secure_url;
-
-//     // Prepare guarantor data if provided
-//     let guarantorData = undefined;
-//     if (rawGuarantor) { // Use the parsed object: rawGuarantor
-//       guarantorData = {
-//         guarantors: {
-//           create: [
-//             {
-//               guarantor: {
-//                 create: {
-//                   name: rawGuarantor.name, // Use rawGuarantor fields
-//                   relationToBorrower: rawGuarantor.relationToBorrower,
-//                   phone: rawGuarantor.phone,
-//                   address: rawGuarantor.address,
-//                   city: rawGuarantor.city,
-//                   occupation: rawGuarantor.occupation,
-//                   idProofType: rawGuarantor.idProofType,
-//                   idProofNumber: rawGuarantor.idProofNumber,
-//                   notes: rawGuarantor.notes,
-//                 },
-//               },
-//               role: "Primary",
-//             },
-//           ],
-//         },
-//       };
-//     }
-
-//     // Create customer with nested loan and optional guarantor
-//     const newCustomer = await prisma.customer.create({
-//       data: {
-//         name,
-//         fatherName,
-//         contactNo,
-//         altContactNo,
-//         aadharNo,
-//         // srNo, // Ensure srNo is included if it exists in your schema
-//         occupation,
-//         city,
-//         address,
-//         profileImageUrl: imageUrl,
-//         loans: {
-//           create: [
-//             {
-//               //  FIX 3: Use the pre-converted loanData object. 
-//               // This is cleaner and ensures all types are correct.
-//               ...loanData, 
-//               ...guarantorData, 
-//             },
-//           ],
-//         },
-//       },
-//       include: {
-//         loans: {
-//           select: { id: true }
-//         }
-//       }
-//     });
-    
-//     // ✅ Keep: Call the installment generator
-//     const newLoanId = newCustomer.loans[0]?.id;
-
-//     if (newLoanId) {
-//         await generateInstallmentsForLoan(newLoanId);
-//         console.log(`Installments generated for new loan ID: ${newLoanId}`);
-//     } else {
-//         console.warn('Loan ID was not returned after creation. Installments skipped.');
-//     }
-
-//     res.status(201).json(newCustomer);
-//   } catch (error) {
-//     console.error("CRITICAL Error creating customer with loan:", error.message);
-//     // Send a detailed error response for better debugging
-//     res.status(500).json({ error: "Internal server error: " + error.message });
-//   }
-// };
-// find by id
 export const getCustomerById = async (req, res) => {
   const customerId = parseInt(req.params.id);
 
@@ -474,41 +343,54 @@ export const getCustomerProfile = async (req, res) => {
 //adding loan for existing customer
 export const addLoanToCustomer = async (req, res) => {
     const customerId = parseInt(req.params.id);
-    
-    // Validate ID
+    const { loan, guarantor } = req.body;
+
     if (isNaN(customerId)) {
         return res.status(400).json({ error: "Invalid customer ID" });
     }
 
-    const { loan, guarantor } = req.body;
+    // --- 1. Business Logic Calculations ---
+    const tenureDays = parseInt(loan.tenure, 10) || 0;
+    const freq = loan.installmentFrequency;
+    
+    // Calculate Correct EMI Count
+    let derivedTotalEmi = 0;
+    if (tenureDays > 0) {
+        if (freq === 'Daily') derivedTotalEmi = tenureDays;
+        else if (freq === 'Weekly') derivedTotalEmi = Math.floor(tenureDays / 5);
+        else if (freq === 'Monthly 10') derivedTotalEmi = Math.floor(tenureDays / 10);
+        else derivedTotalEmi = parseInt(loan.totalEmi, 10) || 0;
+    }
+
+    // Calculate Correct End Date
+    const startDate = new Date(loan.loanDate);
+    const calculatedEndDate = new Date(startDate);
+    calculatedEndDate.setDate(startDate.getDate() + tenureDays);
 
     try {
-        // 🎯 FIX: Manually convert strings to Prisma.Decimal and Date objects
-        // This prevents the "Inconsistent column data" or validation errors.
         const newLoan = await prisma.loan.create({
             data: {
                 loanNumber: loan.loanNumber,
-                loanDate: new Date(loan.loanDate),
+                loanDate: startDate,
+                endDate: calculatedEndDate, // 🎯 FIX: Use the calculated end date
                 loanType: loan.loanType,
                 status: loan.status || "Active",
-                installmentFrequency: loan.installmentFrequency,
+                installmentFrequency: freq,
                 
-                // Financial fields must be wrapped in Prisma.Decimal
-                loanAmount: new Prisma.Decimal(loan.loanAmount),
+                loanAmount: new Prisma.Decimal(loan.loanAmount || 0),
                 interestRate: new Prisma.Decimal(loan.interestRate || 0),
-                totalEmi: parseInt(loan.totalEmi),
-                tenure: loan.tenure ? parseInt(loan.tenure) : undefined,
                 
-                // Calculated fields (matching your createCustomer logic)
+                // 🎯 FIX: Use derivedTotalEmi instead of raw loan.totalEmi
+                totalEmi: derivedTotalEmi, 
+                tenure: tenureDays,
+                
                 interestAmount: new Prisma.Decimal(loan.interestAmount || 0),
                 totalAmount: new Prisma.Decimal(loan.totalAmount || 0),
                 emiAmount: new Prisma.Decimal(loan.emiAmount || 0),
-                balance: new Prisma.Decimal(loan.totalAmount || 0), // Initial balance
-                
-                // Link to customer
+                balance: new Prisma.Decimal(loan.totalAmount || 0), 
+
                 customerId: customerId,
 
-                // Nested Guarantor creation
                 guarantors: guarantor && guarantor.name ? {
                     create: [{
                         role: "Primary",
@@ -530,19 +412,15 @@ export const addLoanToCustomer = async (req, res) => {
             }
         });
 
-        // ⚙️ Generate installments for this specific new loan
+        // ⚙️ Generate installments using the new database record
         await generateInstallmentsForLoan(newLoan.id);
 
-        console.log(`Loan ${newLoan.loanNumber} created for Customer ${customerId}`);
+        console.log(`Loan ${newLoan.loanNumber} added to existing Customer ${customerId}`);
         res.status(201).json(newLoan);
 
     } catch (error) {
         console.error("LOGGING ERROR:", error.message);
-        res.status(500).json({ 
-            error: "Internal Server Error", 
-            details: error.message 
-        });
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 };
-
 //full profile + loan summary
