@@ -211,7 +211,7 @@ export const getCustomerLoans = async (req, res) => {
         balance: remainingBalance.toFixed(2), // Use calculated balance
         type: loan.loanType,
         status: loan.status,
-        tenure: `${loan.totalEmi} days`,
+        tenure: `${loan.tenure} days`,
       },
       transactions:
         loan.transactions.map((t) => ({
@@ -309,7 +309,7 @@ export const getCustomerProfile = async (req, res) => {
                     closingBalance: balanceAmount.toFixed(2),
                     type: loan.loanType || 'N/A',
                     status: loan.status || 'N/A',
-                    tenure: `${loan.totalEmi || 'N/A'} days`,
+                    tenure: `${loan.tenure || 'N/A'} days`,
                     installmentAmount: loan.emiAmount?.toString() || '0.00',
                 },
                 emiLedger: loan.installments.map(i => ({

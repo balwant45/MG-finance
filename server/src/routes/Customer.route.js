@@ -70,12 +70,6 @@ router.post(
  * @access  Public
  */
 router.get("/:id/profile", getCustomerProfile);
-/**
- * @route   GET /customers/:id/loans
- * @desc    Fetch all loans for a specific customer
- * @access  Public
- */
-// router.get("/:id/loans", getCustomerLoans);
 
 /**
  * @route   POST /customers/:id/loans
@@ -89,8 +83,6 @@ router.post("/:id/loans", addLoanToCustomer);
  * @desc    Get loan summary including balance and EMI info
  * @access  Public
  */
-// router.get("/loans/:id/summary", getLoanSummary);
-
 
 router.get("/:id", getCustomerById);
 
