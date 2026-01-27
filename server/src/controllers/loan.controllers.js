@@ -44,77 +44,70 @@ export const getLoanSummary = async (req, res) => {
   }
 };
 //recording payment on customer detail page
-// --- Inside loan.controllers.js ---
-
 export const makeLoanPayment = async (req, res) => {
   const loanId = parseInt(req.params.id);
-  const { amount, date } = req.body;
+  // 🎯 FIX 1: Destructure waiver and isForeclosure
+  const { amount, waiver, date, isForeclosure } = req.body;
 
   if (isNaN(loanId)) return res.status(400).json({ error: "Invalid loan ID" });
 
   try {
-    // We use a Transaction to ensure ALL steps succeed or ALL fail (no partial data)
     const result = await prisma.$transaction(async (tx) => {
-      
-      // 1. Fetch the existing loan details
       const loan = await tx.loan.findUnique({ where: { id: loanId } });
       if (!loan) throw new Error("Loan not found");
 
       const paymentAmount = new Prisma.Decimal(amount || 0);
+      const waiverAmount = new Prisma.Decimal(waiver || 0); // 🎯 Handle Waiver
       const currentBalance = new Prisma.Decimal(loan.balance.toString());
 
-      // 2. Create the Transaction record (For the Customer's history)
+      // 🎯 FIX 2: Transaction records both cash and waiver
       const newTransaction = await tx.transaction.create({
         data: {
           loanId,
           code: `PAY-${Date.now()}`,
           date: new Date(date || new Date()),
           amount: paymentAmount,
+          waiverAmount: waiverAmount, // 🎯 Recorded in DB
           type: "Credit",
+          category: isForeclosure ? "Foreclosure" : "Loan_Repayment",
         },
       });
 
-      // 3. Calculate New Balance
-      const updatedBalance = currentBalance.sub(paymentAmount);
+      // 🎯 FIX 3: Total Impact = Cash + Waiver
+      const totalImpact = paymentAmount.add(waiverAmount);
+      const updatedBalance = currentBalance.sub(totalImpact);
 
-      // 4. Update the Loan Record
-      // This is where we update the Balance and the Status to 'Closed'
       await tx.loan.update({
         where: { id: loanId },
         data: {
           balance: updatedBalance,
-          // 🎯 AUTO-CLOSE LOGIC: If balance is 0 or less, mark as Closed
-          status: updatedBalance.lte(0) ? "Closed" : "Active" 
+          // 🎯 Force "Closed" if it's a foreclosure, regardless of math
+          status: (isForeclosure || updatedBalance.lte(0)) ? "Closed" : "Active",
+          // Update total waiver on the loan
+          waiverAmount: { increment: waiverAmount } 
         },
       });
 
-      // 5. Update the Installment Ledger (For Dashboard and Ledger view)
-      // This ensures that the "Amount Recovered" on the dashboard increases correctly.
-      if (paymentAmount.gt(0)) {
+      // 🎯 FIX 4: Handle installments for foreclosure
+      if (isForeclosure) {
         await tx.installment.updateMany({
-          where: {
-            loanId: loanId,
-            status: { not: "Paid" } // Only update what hasn't been paid yet
-          },
-          data: {
-            status: "Paid",
-            // We record the amount paid in the installment table so 
-            // the Dashboard sum(amount) logic picks it up.
-            amount: loan.emiAmount 
-          }
+          where: { loanId: loanId, status: { not: "Paid" } },
+          data: { status: "Settled", amount: 0 } // Mark as settled early
+        });
+      } else {
+        // Standard payment logic for single EMI
+        await tx.installment.updateMany({
+          where: { loanId: loanId, status: "Pending" },
+          take: 1, // Usually you only want to mark one as paid for a standard payment
+          data: { status: "Paid", amount: paymentAmount }
         });
       }
 
       return newTransaction;
     });
 
-    res.status(201).json({ 
-      message: "Loan payment recorded and status updated", 
-      transaction: result 
-    });
-
+    res.status(201).json({ message: "Success", transaction: result });
   } catch (error) {
-    console.error("Payment Error:", error.message);
     res.status(500).json({ error: error.message });
   }
 };

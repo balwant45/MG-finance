@@ -1,4 +1,3 @@
-// src/pages/DashboardPages/Dashboard.jsx
 
 import React, { useEffect, useState } from "react";
 // import axios from 'axios'; // Optional: Use axios if you prefer
@@ -27,7 +26,8 @@ function Dashboard() {
             amountInvested: 0,
             amountDisbursed: 0,
             amountRecovered: 0,
-            cashInHand: 0
+            cashInHand: 0,
+            totalWaivers: 0,
         },
         loanStats: {
             totalLoans: 0,
@@ -72,6 +72,7 @@ function Dashboard() {
         { title: 'Amount Invested', value: formatCurrency(stats.financial.amountInvested), unit: '₹' },
         { title: 'Amount Disbursed', value: formatCurrency(stats.financial.amountDisbursed), unit: '₹' },
         { title: 'Amount Recovered', value: formatCurrency(stats.financial.amountRecovered), unit: '₹' },
+        { title: 'Total Waivers', value: formatCurrency(stats.financial.totalWaivers), unit: '₹', isWaiver: true },
         { title: 'Cash In Hand', value: formatCurrency(stats.financial.cashInHand), unit: '₹' },
     ];
 
@@ -100,13 +101,14 @@ function Dashboard() {
                 <h3 className="text-xl font-medium mb-6" style={{ color: ACCENT_COLOR }}>
                     Financial Details
                 </h3>
-                <div className="rounded-4xl grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                <div className="rounded-4xl grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
                     {financialData.map((item, index) => (
                         <StatCard
                             key={index}
                             title={item.title}
                             value={item.value}
                             unit={item.unit}
+                            bgColorClass={item.isWaiver ? 'bg-orange-600' : 'bg-[#3B4F2A]'}
                         />
                     ))}
                 </div>

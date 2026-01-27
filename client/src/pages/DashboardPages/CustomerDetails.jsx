@@ -89,39 +89,52 @@ export default function CustomerDetail() {
 }, []);
 
  // --- 2. FORECLOSE FUNCTIONALITY ---
- // This handles paying the full remaining balance and closing the loan record.
+// --- 2. UPDATED FORECLOSE FUNCTIONALITY ---
  const handleForeclose = async (loanId, balance) => {
     if (!loanId) {
         alert("Error: Loan ID is missing.");
         return;
     }
 
-    // Sanitize the balance to ensure it is a clean number (removes ₹, commas)
-    const cleanBalance = String(balance).replace(/[₹,\s]/g, "");
+    // Sanitize the balance
+    const cleanBalance = parseFloat(String(balance).replace(/[₹,\s]/g, ""));
+
+    // Step 1: Ask for the Waiver Amount
+    const waiverInput = window.prompt(
+        `Current Balance: ₹${cleanBalance}\n\nEnter WAIVER amount (Discount) if any:`, 
+        "0"
+    );
+
+    // If user cancels the prompt
+    if (waiverInput === null) return;
+
+    const waiverAmount = parseFloat(waiverInput) || 0;
+    const finalSettlement = cleanBalance - waiverAmount;
+
+    if (finalSettlement < 0) {
+        alert("Waiver cannot be greater than the balance.");
+        return;
+    }
+
+    // Step 2: Final Confirmation
+    const confirmMsg = `Foreclosure Summary:\n- Balance: ₹${cleanBalance}\n- Waiver: ₹${waiverAmount}\n- Net Payment: ₹${finalSettlement}\n\nProceed?`;
     
-    if (window.confirm(`Are you sure you want to FORECLOSE this loan by paying the full balance of ₹${cleanBalance}?`)) {
+    if (window.confirm(confirmMsg)) {
         setIsLoading(true);
         try {
-            // FIX: Endpoint set to '/payments' (plural) to match your backend router.post
             await axios.post(`${API_BASE_URL}/loans/${loanId}/payments`, {
-                amount: cleanBalance,
-                date: new Date().toISOString()
+                amount: finalSettlement.toString(),
+                waiver: waiverAmount.toString(), // 🎯 Sending waiver to backend
+                date: new Date().toISOString(),
+                isForeclosure: true // 🎯 Flag to help backend logic
             });
 
-            alert("Loan Foreclosed Successfully!");
-            
-            // Re-fetch data to update balance to zero and change status to closed
+            alert("Loan Foreclosed with Waiver Successfully!");
             if (currentCustomer) {
                 handleSelectCustomer(currentCustomer.id, currentCustomer.name);
             }
         } catch (err) {
-            // Detailed error visibility for testing 404/500 issues
-            const errorMessage = err.response?.status === 404 
-                ? "Backend route not found. Verify the URL is /loans/:id/payments"
-                : (err.response?.data?.error || err.message);
-                
-            alert("Foreclosure failed: " + errorMessage);
-            console.error("Foreclosure Error:", err);
+            alert("Foreclosure failed: " + (err.response?.data?.error || err.message));
         } finally {
             setIsLoading(false);
         }
