@@ -386,7 +386,7 @@ const handleAddLoan = () => {
                                     <th className="px-3 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Date</th>
                                     <th className="px-3 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">EMI</th>
                                     <th className="px-3 py-4 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Paid</th>
-                                    <th className="px-3 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Bal</th>
+                                    <th className="px-3 py-4 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Balance</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50 bg-white">
