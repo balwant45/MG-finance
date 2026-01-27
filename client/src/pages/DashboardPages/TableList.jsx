@@ -94,17 +94,7 @@ const StatusButton = ({ status, item, fetchCollectionData }) => {
           />
           
           {/* Foreclose Button: Pulls the remaining balance from item.notes */}
-          <button
-            className="btn btn-xs bg-red-600 border-none text-white hover:bg-red-700"
-            title="Foreclose (Pay Full Balance)"
-            onClick={(e) => {
-                e.stopPropagation();
-                // Pass current balance (from notes) or fallback to EMI
-                handleStatusUpdate(item.notes || item.installmentAmount); 
-            }}
-          >
-            Full
-          </button>
+       
         </>
       )}
       
