@@ -233,73 +233,119 @@ function TableList() {
         </div>
       </div>
 
-      {/* --- LEDGER: Main Data Table --- */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
-        <table className="table table-lg w-full">
-          <thead>
-            <tr className=" text-gray-400 uppercase text-sm">
-              <th>Due Date</th>
-              <th>Particulars (Customer)</th>
-              <th>Inst. Amount</th>
-              <th>Status</th>
-              <th>Debit Amount</th>
-              <th>Credit Amount</th>
-              <th>Notes (Balance)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {collectionEntries.map((item, index) => (
-              <tr
-                key={item.srNo + item.particulars + index}
-                className="hover border-gray-100"
-              >
-                {/* 1. Date/SR No Column */}
-                <td className="font-medium text-gray-700">
-                  {item.dueDate ? item.dueDate : item.srNo}
-                </td>
+  {/* --- LEDGER: Main Data Table Container --- */}
+<div className="bg-white rounded-none md:rounded-xl shadow-md md:shadow-lg overflow-hidden border-b md:border border-gray-100">
+  
+  {/* --- 1. MOBILE VIEW: Visible only on small screens (Stacked Cards) --- */}
+  <div className="md:hidden divide-y divide-gray-100">
+    {collectionEntries.map((item, index) => (
+      <div key={`mobile-${index}`} className="p-4 active:bg-gray-50 transition-colors">
+        {/* Top Row: Meta Info & Status */}
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex flex-col">
+            {/* Displaying Sr No and Due Date as secondary info */}
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+              #{item.srNo} — {item.dueDate}
+            </span>
+            {/* Clickable Customer Particulars */}
+            <span 
+              className="text-sm font-semibold text-blue-600 truncate max-w-[180px]"
+              onClick={() => handleParticularsClick(item.customerId)}
+            >
+              {item.particulars}
+            </span>
+          </div>
+          
+          {/* Payment Action Button */}
+          <div className="flex flex-col items-end">
+            <StatusButton 
+              status={item.status} 
+              item={{
+                ...item,
+                installmentId: item.installmentId || item.srNo,
+              }} 
+              fetchCollectionData={fetchCollectionData} 
+            />
+          </div>
+        </div>
 
-                {/* 2. Clickable Customer Name */}
-                <td
-                  className="font-medium text-blue-600 cursor-pointer hover:underline"
-                  onClick={() => handleParticularsClick(item.customerId)}
-                >
-                  {item.particulars}
-                </td>
-
-                {/* 3. Expected EMI Amount */}
-                <td>₹{item.installmentAmount}</td>
-
-                {/* 4. Action Button: Integrated with Manual/Full Pay logic */}
-                <td key={`status-${index}`}>
-                  <StatusButton
-                    status={item.status}
-                    item={{
-                      ...item,
-                      installmentId: item.installmentId || item.srNo,
-                    }}
-                    fetchCollectionData={fetchCollectionData}
-                  />
-                </td>
-
-                {/* 5. Actual Amounts and Ledger Notes */}
-                <td>₹{item.debitAmount}</td>
-                <td>₹{item.creditAmount}</td>
-                <td className="text-gray-500 text-xs">{item.notes}</td>
-              </tr>
-            ))}
-
-            {/* Empty State */}
-            {collectionEntries.length === 0 && (
-              <tr>
-                <td colSpan="7" className="flex p-4 text-gray-500">
-                  No installments due or collected on{" "}
-                  {formatDateToInput(selectedDate)}.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {/* Shaded Box for Financial Values (Amount & Balance) */}
+        <div className="flex justify-between items-end mt-3 bg-gray-50 p-2 rounded-lg">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">Inst. Amt</span>
+            <span className="text-sm font-mono font-bold text-gray-800">₹{item.installmentAmount}</span>
+          </div>
+          <div className="flex flex-col text-right">
+            <span className="text-[10px] text-gray-500 uppercase font-black tracking-tighter">Balance</span>
+            <span className="text-sm font-mono font-bold text-red-600">₹{item.notes}</span>
+          </div>
+        </div>
       </div>
+    ))}
+
+    {/* Mobile Empty State */}
+    {collectionEntries.length === 0 && (
+       <div className="p-8 text-center text-gray-400 text-sm">
+         No installments due or collected.
+       </div>
+    )}
+  </div>
+
+  {/* --- 2. DESKTOP VIEW: Visible only on md screens and up (Original Table) --- */}
+  <div className="hidden md:block overflow-x-auto">
+    <table className="table table-lg w-full">
+      <thead>
+        <tr className="text-gray-400 uppercase text-sm">
+          <th>Due Date</th>
+          <th>Particulars (Customer)</th>
+          <th>Inst. Amount</th>
+          <th>Status</th>
+          <th>Debit Amount</th>
+          <th>Credit Amount</th>
+          <th>Notes (Balance)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {collectionEntries.map((item, index) => (
+          <tr key={`desktop-${index}`} className="hover border-gray-100">
+            <td className="font-medium text-gray-700">
+              {item.dueDate ? item.dueDate : item.srNo}
+            </td>
+            <td
+              className="font-medium text-blue-600 cursor-pointer hover:underline"
+              onClick={() => handleParticularsClick(item.customerId)}
+            >
+              {item.particulars}
+            </td>
+            <td>₹{item.installmentAmount}</td>
+            <td>
+              <StatusButton
+                status={item.status}
+                item={{
+                  ...item,
+                  installmentId: item.installmentId || item.srNo,
+                }}
+                fetchCollectionData={fetchCollectionData}
+              />
+            </td>
+            <td>₹{item.debitAmount}</td>
+            <td>₹{item.creditAmount}</td>
+            <td className="text-gray-500 text-xs">{item.notes}</td>
+          </tr>
+        ))}
+
+        {/* Desktop Empty State */}
+        {collectionEntries.length === 0 && (
+          <tr>
+            <td colSpan="7" className="text-center p-4 text-gray-500">
+              No installments due or collected on {formatDateToInput(selectedDate)}.
+            </td>
+          </tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
     </div>
   );
 }
