@@ -311,6 +311,7 @@ export const getCustomerProfile = async (req, res) => {
                     status: loan.status || 'N/A',
                     tenure: `${loan.tenure || 'N/A'} days`,
                     installmentAmount: loan.emiAmount?.toString() || '0.00',
+                    loanNumber:loan.loanNumber || 'N/A'
                 },
                 emiLedger: loan.installments.map(i => ({
                     slNo: i.srNo,

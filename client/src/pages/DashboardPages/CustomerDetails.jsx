@@ -276,7 +276,7 @@ const handleAddLoan = () => {
                 selectedLoanIndex === idx ? "bg-[#3B4F2A] text-white shadow-md" : "bg-white text-gray-500 border-gray-200"
               }`}
             >
-              Loan {loan.loanSummary.id}
+              Loan {loan.loanSummary.loanNumber}
             </button>
           );
         })}
