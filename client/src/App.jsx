@@ -14,8 +14,8 @@ import CreateCustomer from "./pages/DashboardPages/CreateCustomer";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // ✅ 1. AXIOS SETUP
-// axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
-axios.defaults.baseURL = 'https://mgfinances.com';
+axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
+// axios.defaults.baseURL = 'https://mgfinances.com';
 axios.defaults.withCredentials = true; // 🚨 CRITICAL: Allows cookies to be sent/received
 
 function App() {
