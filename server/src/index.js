@@ -21,6 +21,8 @@ app.use(cookieParser());
 
 const allowedOrigins = [
   "https://www.mgfinances.com",
+  "https://mgfinances.com",
+  "https://mg-finance.vercel.app/",
   "http://localhost:5173" 
 ];
 
