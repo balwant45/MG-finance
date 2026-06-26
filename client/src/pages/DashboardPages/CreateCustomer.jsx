@@ -2,7 +2,7 @@ import React, { useState, useEffect} from "react";
 import axios from 'axios';
 import {useLocation} from 'react-router-dom';
 
-const API_BASE_URL = "https://mg-finance.onrender.com";
+const API_BASE_URL = "https://mg-finance-a0tt.onrender.com";
 // const API_BASE_URL = "http://localhost:3000";
 
 // Initial state for customer, loan, and guarantor fields

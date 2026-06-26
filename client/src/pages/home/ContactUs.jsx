@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 
 // Standard production URL setup (matches your other components)
-const API_BASE_URL = "https://mg-finance.onrender.com"; 
+const API_BASE_URL = "https://mg-finance-a0tt.onrender.com"; 
 
 export default function ContactUs() {
   // 1. Form States

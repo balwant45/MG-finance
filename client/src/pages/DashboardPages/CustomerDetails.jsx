@@ -5,7 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import "./customerdetail.css";
 
 // --- CONFIGURATION ---
-const API_BASE_URL = "https://mg-finance.onrender.com";
+const API_BASE_URL = "https://mg-finance-a0tt.onrender.com";
 
 // --- HELPER COMPONENTS ---
 // Uniform detail rows for Personal/Account sections

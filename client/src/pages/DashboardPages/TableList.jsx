@@ -4,8 +4,8 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 // 🛠️ CONFIGURATION: Backend API Endpoints
-const API_URL = "https://mg-finance.onrender.com/loans/daily-collection";
-const API_UPDATE_URL = "https://mg-finance.onrender.com/loans/installments";
+const API_URL = "https://mg-finance-a0tt.onrender.com/loans/daily-collection";
+const API_UPDATE_URL = "https://mg-finance-a0tt.onrender.com/loans/installments";
 
 /**
  * HELPER: Format date objects to YYYY-MM-DD
