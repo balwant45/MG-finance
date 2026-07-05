@@ -12,10 +12,13 @@ import Dashboard from "./pages/DashboardPages/Dashboard";
 import CustomerDetail from "./pages/DashboardPages/CustomerDetails";
 import CreateCustomer from "./pages/DashboardPages/CreateCustomer";
 import ProtectedRoute from "./components/ProtectedRoute";
+import ExpenseTracker from "./pages/DashboardPages/ExpenseTracker";
+
 
 // ✅ 1. AXIOS SETUP
-axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
-// axios.defaults.baseURL = 'https://mgfinances.com';
+// axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
+
+axios.defaults.baseURL = 'http://localhost:3000';
 axios.defaults.withCredentials = true; // 🚨 CRITICAL: Allows cookies to be sent/received
 
 function App() {
@@ -69,11 +72,9 @@ function App() {
         <Route index element={<Dashboard />} /> 
         <Route path="dailycollection" element={<TableList />} />
         <Route path="createloan" element={<CreateCustomer/>} />
-        
-        {/* ✅ 3. FIXED ROUTING LOGIC */}
-        {/* /dashboard/customers -> Shows the LIST of customers */}
         <Route path="customers" element={<CustomerDetail />} /> 
-        
+        <Route path="expensetracker" element={<ExpenseTracker />} />
+
         {/* /dashboard/customers/123 -> Shows the DETAILS of one customer */}
         <Route path="customers/:id" element={<CustomerDetail />} />
 

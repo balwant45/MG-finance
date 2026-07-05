@@ -135,3 +135,19 @@ model User {
 
   @@map("users") // Optional: Renames the table to "users" in the DB (lowercase)
 }
+//expense management
+model Expense {
+  id            Int      @id @default(autoincrement())
+  date          DateTime
+  amount        Float    
+  category      String
+  paymentMethod String
+  vendor        String
+  reference     String?  // Marked as optional based on your UI
+  description   String?  // Marked as optional based on your UI
+  status        String   @default("Paid") 
+  
+  // Standard timestamps for tracking when records are created/modified
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}

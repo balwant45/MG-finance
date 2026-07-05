@@ -8,9 +8,13 @@ const ACTIVE_COLOR = "#4A7A48"; // Lighter green for active background
 
 // Component for the user profile section (Unchanged for this fix)
 const UserProfile = () => (
-  <div className="absolute bottom-0 w-full px-4 py-6">
+  <div className="absolute md:bottom-0 w-full px-4 py-6">
     <div className="flex items-center space-x-3 text-white">
-      {/* ... Profile Details JSX ... */}
+     <h3>ballu singh <h>wedw</h></h3>
+        <div className="bg-white text-black h-8 w-8">
+
+        </div>
+
     </div>
   </div>
 );
@@ -138,21 +142,52 @@ function Sidebar() {
         </svg>
       ),
     },
+    {
+      path: "expenseTracker",
+      label: "Expense Tracker",
+      icon: (
+        <svg
+          width="25"
+          height="25"
+          viewBox="0 0 25 25"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g clip-path="url(#clip0_72_1304)">
+            <path
+              d="M13.8073 14.2698C17.6126 14.2698 20.7084 11.5176 20.7084 8.1349C20.7084 4.75215 17.6126 2 13.8073 2C10.0021 2 6.90625 4.75211 6.90625 8.13486C6.90625 11.5176 10.0021 14.2698 13.8073 14.2698ZM11.5898 10.0493C11.7905 9.77864 12.2021 9.70267 12.5089 9.8798C12.9561 10.1377 13.1247 10.1615 13.7148 10.1579C14.2907 10.1545 14.6248 9.77595 14.6916 9.42561C14.7241 9.25521 14.7365 8.83909 14.1517 8.65677C13.4658 8.44292 12.7639 8.19849 12.2755 7.86069C11.7872 7.52288 11.5636 6.93971 11.692 6.33886C11.8312 5.68749 12.3464 5.16897 13.0366 4.98564C13.0428 4.984 13.049 4.98268 13.0552 4.98104V4.75906C13.0552 4.43566 13.3525 4.17347 13.7192 4.17347C14.0859 4.17347 14.3832 4.43566 14.3832 4.75906V4.94414C14.8341 5.03909 15.1491 5.22105 15.277 5.30533C15.5707 5.49901 15.6308 5.86594 15.4112 6.125C15.1917 6.38407 14.7756 6.43708 14.4819 6.24337C14.3458 6.15366 13.9698 5.9608 13.4196 6.10701C13.0982 6.19242 13.0148 6.4721 12.9969 6.55576C12.9618 6.72015 13.0012 6.87424 13.0951 6.93913C13.4336 7.17328 14.0429 7.38062 14.5943 7.55251C15.6111 7.86947 16.1764 8.70022 16.0012 9.61975C15.9152 10.0709 15.6578 10.4895 15.2764 10.7985C15.0167 11.009 14.7144 11.1591 14.3832 11.2448V11.5107C14.3832 11.8341 14.0859 12.0962 13.7192 12.0962C13.3525 12.0962 13.0552 11.8341 13.0552 11.5107V11.3032C12.6259 11.2573 12.2655 11.1388 11.7819 10.8599C11.4751 10.6828 11.389 10.3199 11.5898 10.0493Z"
+              fill="white"
+            />
+            <path
+              d="M3.17796 16.2373H1.66399C1.29729 16.2373 1 16.4995 1 16.8229V21.4135C1 21.7369 1.29729 21.9991 1.66399 21.9991H3.178V16.2373H3.17796Z"
+              fill="white"
+            />
+            <path
+              d="M22.8053 16.196C21.5608 15.0985 19.5358 15.0984 18.2913 16.196L16.3023 17.9502L15.4871 18.6692C15.1576 18.9598 14.7107 19.123 14.2448 19.123H10.2806C9.92256 19.123 9.61448 18.8803 9.59761 18.5649C9.57964 18.2282 9.88388 17.9502 10.2618 17.9502H14.2911C15.1013 17.9502 15.8039 17.4415 15.9432 16.7377C15.9752 16.5761 15.9919 16.4099 15.9919 16.2403C15.9919 15.9163 15.6943 15.6534 15.327 15.6534H13.1191C12.3976 15.6534 11.7047 15.3647 10.9711 15.0591C10.2016 14.7385 9.40598 14.407 8.47565 14.3525C7.66196 14.3046 6.84641 14.3832 6.05153 14.5856C5.20043 14.8024 4.58864 15.4693 4.51445 16.2392C4.51161 16.239 4.50874 16.2389 4.50586 16.2388V21.9967L15.9453 21.9995C16.7318 21.9995 17.4713 21.7294 18.0276 21.2388L22.8052 17.0253C23.065 16.7964 23.065 16.425 22.8053 16.196Z"
+              fill="white"
+            />
+          </g>
+          <defs>
+            <clipPath id="clip0_72_1304">
+              <rect width="25" height="25" fill="white" />
+            </clipPath>
+          </defs>
+        </svg>
+      ),
+    },
+    
   ];
 
   // --- Determine Active Link Path (Helper function) ---
   const getActivePath = (linkPath, isRoot) => {
     if (isRoot) {
-      // 🎯 LOGIC FIX 2: Only match if it's the exact root path
       return isDashboardRoot;
     }
-    // 🎯 LOGIC FIX 3: Use strict startswith matching for sub-routes
     // We look for /dashboard/customers, /dashboard/dailycollection, etc.
     return location.pathname.startsWith(`/dashboard/${linkPath}`);
   };
 
   return (
-    // 🎨 STYLING FIX 1: Apply rounded corners to the ASIDE element
     // The sidebar touches the left, so we don't need a left margin.
     <aside className="w-64 bg-[#3B4F2A] text-white h-screen relative rounded-tr-3xl rounded-br-3xl overflow-hidden shadow-lg">
       {/* Logo and Title */}
@@ -166,20 +201,14 @@ function Sidebar() {
       <ul className="menu text-lg space-y-0 mt-8 mx-0 px-0">
         {navLinks.map((link) => {
           const isActive = getActivePath(link.path, link.isRoot);
-          const linkToPath = link.isRoot
-            ? "/dashboard"
-            : `/dashboard/${link.path}`;
+          const linkToPath = link.isRoot? "/dashboard": `/dashboard/${link.path}`;
 
           // 🎨 STYLING FIX 3: Link Padding, Background, and Text Color
           const baseLinkClass = `flex items-center space-x-3 py-3 pl-8 pr-10 transition-all duration-200 relative`;
 
-          const activeBg = isActive
-            ? `bg-[${MAIN_CONTENT_BG}] -mr-4` // Uses the light background of the main content & negative margin
-            : `hover:bg-[${ACTIVE_COLOR}]`;
+          const activeBg = isActive? `bg-[${MAIN_CONTENT_BG}] -mr-4`: `hover:bg-[${ACTIVE_COLOR}]`;
 
-          const activeTextColor = isActive
-            ? `text-[${SIDEBAR_COLOR}]`
-            : "text-white";
+          const activeTextColor = isActive? `text-[${SIDEBAR_COLOR}]`: "text-white";
           const activeIconColor = isActive ? "fill-black" : "fill-white"; // Separate icon color class
 
           return (

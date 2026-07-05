@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.js"; 
 import customerRoutes from "./routes/Customer.route.js";
 import loanRoutes from "./routes/Loans.route.js";
+import expenseRoutes from "./routes/Expense.route.js";
 import { getDashboardSummary } from "./controllers/Dashboard.controller.js";
 // import installmentRoutes from "./routes/Installment.route.js"; 
 import { handleContactForm } from "./controllers/Contact.controller.js";
@@ -43,6 +44,7 @@ app.use("/auth", authRoutes);
  app.get("/summary", getDashboardSummary);
 app.use("/customers", customerRoutes);
 app.use("/loans", loanRoutes);
+app.use("/expenses", expenseRoutes);
 
 // Home route
 app.get("/", (req, res) => {
