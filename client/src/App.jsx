@@ -16,9 +16,9 @@ import ExpenseTracker from "./pages/DashboardPages/ExpenseTracker";
 
 
 // ✅ 1. AXIOS SETUP
-// axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
+axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
 
-axios.defaults.baseURL = 'http://localhost:3000';
+// axios.defaults.baseURL = 'http://localhost:3000';
 axios.defaults.withCredentials = true; // 🚨 CRITICAL: Allows cookies to be sent/received
 
 function App() {

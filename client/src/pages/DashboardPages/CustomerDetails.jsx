@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import "./customerdetail.css";
 
 // --- CONFIGURATION ---
+// const API_BASE_URL = "http://localhost:3000";
 const API_BASE_URL = "https://mg-finance-a0tt.onrender.com";
 
 // --- HELPER COMPONENTS ---
@@ -116,7 +117,6 @@ export default function CustomerDetail() {
         return;
     }
 
-    // Step 2: Final Confirmation
     const confirmMsg = `Foreclosure Summary:\n- Balance: ₹${cleanBalance}\n- Waiver: ₹${waiverAmount}\n- Net Payment: ₹${finalSettlement}\n\nProceed?`;
     
     if (window.confirm(confirmMsg)) {

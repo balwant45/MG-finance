@@ -1,6 +1,5 @@
 
 import React, { useEffect, useState } from "react";
-// import axios from 'axios'; // Optional: Use axios if you prefer
 
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, unit = '', bgColorClass = 'bg-[#3B4F2A]' }) => (

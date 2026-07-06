@@ -32,7 +32,7 @@ const AddExpenseForm = ({ isOpen, onClose, onExpenseAdded }) => {
 
     try {
       // Connects to your local backend for testing
-      const response = await fetch("http://localhost:3000/expenses", {
+      const response = await fetch("https://mg-finance-a0tt.onrender.com", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
