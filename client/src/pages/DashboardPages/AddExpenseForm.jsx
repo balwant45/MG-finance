@@ -1,5 +1,5 @@
-import React from 'react'
-import {useState} from 'react'
+import React, { useState } from 'react';
+
 const AddExpenseForm = ({ isOpen, onClose, onExpenseAdded }) => {
   // Initial state matching your Prisma model and UI
   const initialFormState = {
@@ -30,12 +30,18 @@ const AddExpenseForm = ({ isOpen, onClose, onExpenseAdded }) => {
     setLoading(true);
     setError(null);
 
+    // Ensure the amount is sent as a number, not a string
+    const payload = {
+      ...formData,
+      amount: parseFloat(formData.amount)
+    };
+
     try {
-      // Connects to your local backend for testing
-      const response = await fetch("https://mg-finance-a0tt.onrender.com", {
+      // FIX: Added /expenses to the end of the URL
+      const response = await fetch("https://mg-finance-a0tt.onrender.com/expenses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (response.ok) {

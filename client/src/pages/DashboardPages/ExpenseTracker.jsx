@@ -9,85 +9,59 @@ function ExpenseTracker() {
   const [expenses, setExpenses] = useState([]);
   const [meta, setMeta] = useState({ totalExpensesSum: 0 });
   const [loading, setLoading] = useState(true);
-  // search state
-  // Add this near your other state variables
-const [searchTerm, setSearchTerm] = useState("");
-// modal toggle state
-const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-const fetchExpenses = async () => {
-  try {
-    // Check if there is a search term and build the URL accordingly
-    const url = searchTerm 
-      ? `https://mg-finance-a0tt.onrender.com:/expenses?search=${encodeURIComponent(searchTerm)}`
-      : `https://mg-finance-a0tt.onrender.com/expenses`;
+  const fetchExpenses = async () => {
+    try {
+      // Fixed the stray colon in the URL here
+      const url = searchTerm 
+        ? `https://mg-finance-a0tt.onrender.com/expenses?search=${encodeURIComponent(searchTerm)}`
+        : `https://mg-finance-a0tt.onrender.com/expenses`;
 
-    const response = await fetch(url);
-    if (response.ok) {
-      const data = await response.json();
-      setExpenses(data.expenses); 
-      setMeta(data.meta);
-    } else {
-      console.error("Failed to fetch expenses");
-    }
-  } catch (error) {
-    console.error("Error connecting to backend:", error);
-  } finally {
-    setLoading(false);
-  }
-};
-
-  useEffect(() => {
-  // Set a timer to delay the fetch
-  const delayDebounceFn = setTimeout(() => {
-    fetchExpenses();
-  }, 500); // Waits 500ms after the user stops typing
-
-  // Cleanup the timer if the user types again before 500ms is up
-  return () => clearTimeout(delayDebounceFn);
-}, [searchTerm]); //
-  // 2. Fetch data when the component mounts
-  useEffect(() => {
-    const fetchExpenses = async () => {
-      try {
-        // Using your live backend URL mapping to the new /expenses route
-        // const response = await fetch("https://mg-finance-a0tt.onrender.com/expenses");
-        const response = await fetch("http://localhost:3000/expenses");
-        
-        if (response.ok) {
-          const data = await response.json();
-          // The backend returns { expenses: [...], meta: { ... } }
-          setExpenses(data.expenses); 
-          setMeta(data.meta);
-        } else {
-          console.error("Failed to fetch expenses");
-        }
-      } catch (error) {
-        console.error("Error connecting to backend:", error);
-      } finally {
-        setLoading(false);
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        setExpenses(data.expenses); 
+        setMeta(data.meta);
+      } else {
+        console.error("Failed to fetch expenses");
       }
-    };
+    } catch (error) {
+      console.error("Error connecting to backend:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchExpenses();
+    }, 500); 
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]); 
+
+  useEffect(() => {
     fetchExpenses();
   }, []);
 
   return (
-    <div className="p-8">
+    // Reduced padding on mobile (p-4) and restored it for desktop (md:p-8)
+    <div className="p-4 md:p-8">
       <header
-        className="mb-8 border-b pb-4"
+        className="mb-6 md:mb-8 border-b pb-4"
         style={{ borderColor: ACCENT_COLOR }}
       >
-        <h2 className="text-3xl font-light" style={{ color: ACCENT_COLOR }}>
+        <h2 className="text-2xl md:text-3xl font-light" style={{ color: ACCENT_COLOR }}>
           Manage Expenses
         </h2>
       </header>
 
-      {/* Top Cards */}
-      <section className="flex flex-col md:flex-row gap-4 mb-10">
-       <div className="shadow-lg rounded-lg p-4 bg-white flex-1 flex flex-col">
-          {/* Header Area: Title & Total */}
-          <div className="flex justify-between items-center mb-4 border-b pb-2">
+      {/* Top Cards - Stacks on mobile, side-by-side on md screens */}
+      <section className="flex flex-col lg:flex-row gap-4 md:gap-6 mb-8 md:mb-10">
+        <div className="shadow-md md:shadow-lg rounded-lg p-4 bg-white flex-1 flex flex-col">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-4 border-b pb-2">
             <h4 className="text-gray-500 font-medium">
               Latest Transactions
             </h4>
@@ -96,7 +70,6 @@ const fetchExpenses = async () => {
             </span>
           </div>
 
-          {/* Mini-List of 5 Latest Expenses */}
           <div className="flex flex-col gap-3 overflow-y-auto">
             {expenses.length === 0 ? (
               <p className="text-sm text-gray-400 py-2">No recent transactions.</p>
@@ -104,7 +77,7 @@ const fetchExpenses = async () => {
               expenses.slice(0, 5).map((expense) => (
                 <div key={expense.id} className="flex justify-between items-center border-b border-gray-50 last:border-0 pb-2">
                   <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-gray-700 truncate w-32 md:w-48">
+                    <span className="text-sm font-semibold text-gray-700 truncate w-32 sm:w-48">
                       {expense.vendor}
                     </span>
                     <span className="text-xs text-gray-400">
@@ -120,26 +93,27 @@ const fetchExpenses = async () => {
           </div>
         </div>
         
-        <div className="shadow-lg rounded-lg p-4 bg-white flex-1">
+        <div className="shadow-md md:shadow-lg rounded-lg p-4 bg-white flex-1">
           <h4 className="text-gray-500 font-medium mb-2">Expense Breakdown</h4>
+          {/* Ensure PieChart component handles 100% width internally */}
           <PieChart expenses={expenses} />
         </div>
       </section>
 
-      {/* Search Bar and Add New Exp Button */}
-     <section className="flex justify-between items-center mb-6">
-        <div className="w-1/3">
-         <input 
-  type="text" 
-  placeholder="Search Vendor, Category, or Description..." 
-  value={searchTerm}
-  onChange={(e) => setSearchTerm(e.target.value)} // Updates state as you type
-  className="w-full border border-gray-300 rounded-md p-2 text-sm focus:outline-none focus:border-[#a38047]"
-/>
+      {/* Search Bar and Add New Exp Button - Stacked on mobile */}
+      <section className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-6">
+        <div className="w-full md:w-1/3">
+          <input 
+            type="text" 
+            placeholder="Search Vendor, Category, or Description..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)} 
+            className="w-full border border-gray-300 rounded-md p-3 md:p-2 text-sm focus:outline-none focus:border-[#a38047]"
+          />
         </div>
         <button 
           onClick={() => setIsModalOpen(true)}
-          className="text-white px-5 py-2 rounded-md font-medium hover:opacity-90 transition flex items-center gap-2 shadow-sm"
+          className="text-white px-5 py-3 md:py-2 rounded-md font-medium hover:opacity-90 transition flex justify-center items-center gap-2 shadow-sm w-full md:w-auto"
           style={{ backgroundColor: "#a68241" }}
         >
           Add New Expense <span>+</span>
@@ -147,11 +121,12 @@ const fetchExpenses = async () => {
       </section>
 
       {/* Transaction List Table */}
-      <section className="p-4 mb-2 bg-white center rounded-none md:rounded-xl shadow-md md:shadow-lg overflow-hidden border-b md:border border-gray-100">
-        <h3 className="text-xl font-semibold mb-4">Transaction List</h3>
+      <section className="p-0 md:p-4 mb-2 bg-white rounded-none md:rounded-xl shadow-none md:shadow-lg overflow-hidden border-t md:border border-gray-200">
+        <h3 className="text-xl font-semibold mb-4 px-4 md:px-0 pt-4 md:pt-0">Transaction List</h3>
         
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+        {/* overflow-x-auto allows the table to scroll horizontally on small screens rather than squishing */}
+        <div className="overflow-x-auto px-4 md:px-0 pb-4 md:pb-0">
+          <table className="w-full text-left border-collapse min-w-[600px]">
             <thead>
               <tr className="bg-gray-50 text-gray-600 text-sm uppercase tracking-wider">
                 <th className="p-3">Date</th>
@@ -163,7 +138,6 @@ const fetchExpenses = async () => {
               </tr>
             </thead>
             <tbody>
-              {/* Conditional rendering based on loading state and data */}
               {loading ? (
                 <tr>
                   <td colSpan="6" className="text-center p-4">Loading expenses...</td>
@@ -184,7 +158,7 @@ const fetchExpenses = async () => {
                     <td className="p-3 font-medium">
                       ₹{expense.amount.toLocaleString('en-IN')}
                     </td>
-                    <td className="p-3">{expense.paymentMethod}</td>
+                    <td className="p-3 whitespace-nowrap">{expense.paymentMethod}</td>
                   </tr>
                 ))
               )}
@@ -192,11 +166,11 @@ const fetchExpenses = async () => {
           </table>
         </div>
       </section>
-      {/* NEW: The Modal Component Mounted Here */}
+
       <AddExpenseForm 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        onExpenseAdded={fetchExpenses} // Passes the fetch function to refresh table
+        onExpenseAdded={fetchExpenses} 
       />
     </div>
   );
