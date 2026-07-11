@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 function dashboardWrapper() {
   return (
     <>
-      <div className="flex h-screen bg-base-200 md:pl-64">
+      <div className="flex h-[100dvh] bg-base-200 md:pl-64">
         <Sidebar />
         <div className="flex flex-col flex-1">
           <Navbar />

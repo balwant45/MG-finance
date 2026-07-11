@@ -13,6 +13,7 @@ const navItems = [
   { name: "Customer Detail", path: "customers" },
   { name: "Daily Collection", path: "dailycollection" },
   { name: "New Customer", path: "createloan" },
+  { name: "Expense Tracker", path: "expenseTracker" }
 ];
 
 export default function MobileDrawer({ isOpen, onClose }) {
