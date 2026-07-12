@@ -1,26 +1,76 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, } from "react-router-dom";
 import logo from "../assets/mgFinanceLogo.svg";
 // Assuming the external background color is a light beige (e.g., #FFFDE7)
 const MAIN_CONTENT_BG = "#FFFDE7";
 const SIDEBAR_COLOR = "#4e6739";
 const ACTIVE_COLOR = "#4A7A48"; // Lighter green for active background
 
-// Component for the user profile section (Unchanged for this fix)
-const UserProfile = () => (
-  <div className="absolute md:bottom-0 w-full px-4 py-6">
-    <div className="flex items-center space-x-3 text-white">
-     <h3>ballu singh <h>wedw</h></h3>
-        <div className="bg-white text-black h-8 w-8">
+function Sidebar() {
+  const [userData, setUserData] = useState(null);
+  
+  // 1. ADD AN EXPLICIT LOADING STATE
+  const [isLoading, setIsLoading] = useState(true); 
+  const location = useLocation();
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch("https://mg-finance-a0tt.onrender.com/auth/verify", {
+          method: "GET",
+          credentials: "include", 
+          headers: {
+            "Content-Type": "application/json"
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.isAuthenticated) {
+            setUserData(data.user);
+          }
+        } else {
+          // If the backend says "Not Authorized", ensure userData is null
+          setUserData(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user profile", error);
+        setUserData(null);
+      } finally {
+        // 2. ALWAYS STOP LOADING, EVEN IF IT FAILED
+        setIsLoading(false);
+      }
+    };
+
+    fetchUser();
+  }, []);
+
+  // 3. CLEAN UP THE USER PROFILE COMPONENT
+  // Pass the actual user object in, rather than relying on outer scope variables
+  const UserProfile = ({ user, loading }) => {
+    // Determine the display name to use
+    const displayName = user ? user.name : "Guest";
+
+    return (
+      <div className="absolute md:bottom-0 w-full px-4 py-6">
+        <div className="flex items-center space-x-3 text-white">
+          
+          {/* Avatar/Initial Circle */}
+          <div className="bg-white text-black h-8 w-8 rounded-full flex items-center justify-center font-bold">
+            {/* Show a loading spinner or just empty space while loading */}
+            {loading ? "..." : displayName.charAt(0).toUpperCase()}
+          </div>
+
+          {/* User Name Display */}
+          <h3 className="font-medium text-lg">
+            {loading ? "Loading..." : displayName}
+          </h3>
 
         </div>
-
-    </div>
-  </div>
-);
-
-function Sidebar() {
-  const location = useLocation();
+      </div>
+    );
+  };
 
   // Stricter matching for the root dashboard path
   const isDashboardRoot =
@@ -79,7 +129,7 @@ function Sidebar() {
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <g clip-path="url(#clip0_72_1286)">
+          <g clipPath="url(#clip0_72_1286)">
             <path
               d="M3.75 16.5C3.75047 16.8977 3.90865 17.2789 4.18984 17.5601C4.47103 17.8413 4.85226 17.9995 5.24992 18H12.7495C13.1472 17.9995 13.5284 17.8413 13.8096 17.5601C14.0908 17.2789 14.249 16.8977 14.2495 16.5V15.8438H3.75V16.5Z"
               fill="white"
@@ -120,7 +170,7 @@ function Sidebar() {
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <g clip-path="url(#clip0_72_1304)">
+          <g clipPath="url(#clip0_72_1304)">
             <path
               d="M13.8073 14.2698C17.6126 14.2698 20.7084 11.5176 20.7084 8.1349C20.7084 4.75215 17.6126 2 13.8073 2C10.0021 2 6.90625 4.75211 6.90625 8.13486C6.90625 11.5176 10.0021 14.2698 13.8073 14.2698ZM11.5898 10.0493C11.7905 9.77864 12.2021 9.70267 12.5089 9.8798C12.9561 10.1377 13.1247 10.1615 13.7148 10.1579C14.2907 10.1545 14.6248 9.77595 14.6916 9.42561C14.7241 9.25521 14.7365 8.83909 14.1517 8.65677C13.4658 8.44292 12.7639 8.19849 12.2755 7.86069C11.7872 7.52288 11.5636 6.93971 11.692 6.33886C11.8312 5.68749 12.3464 5.16897 13.0366 4.98564C13.0428 4.984 13.049 4.98268 13.0552 4.98104V4.75906C13.0552 4.43566 13.3525 4.17347 13.7192 4.17347C14.0859 4.17347 14.3832 4.43566 14.3832 4.75906V4.94414C14.8341 5.03909 15.1491 5.22105 15.277 5.30533C15.5707 5.49901 15.6308 5.86594 15.4112 6.125C15.1917 6.38407 14.7756 6.43708 14.4819 6.24337C14.3458 6.15366 13.9698 5.9608 13.4196 6.10701C13.0982 6.19242 13.0148 6.4721 12.9969 6.55576C12.9618 6.72015 13.0012 6.87424 13.0951 6.93913C13.4336 7.17328 14.0429 7.38062 14.5943 7.55251C15.6111 7.86947 16.1764 8.70022 16.0012 9.61975C15.9152 10.0709 15.6578 10.4895 15.2764 10.7985C15.0167 11.009 14.7144 11.1591 14.3832 11.2448V11.5107C14.3832 11.8341 14.0859 12.0962 13.7192 12.0962C13.3525 12.0962 13.0552 11.8341 13.0552 11.5107V11.3032C12.6259 11.2573 12.2655 11.1388 11.7819 10.8599C11.4751 10.6828 11.389 10.3199 11.5898 10.0493Z"
               fill="white"
@@ -153,7 +203,7 @@ function Sidebar() {
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
-          <g clip-path="url(#clip0_72_1304)">
+          <g clipPath="url(#clip0_72_1304)">
             <path
               d="M13.8073 14.2698C17.6126 14.2698 20.7084 11.5176 20.7084 8.1349C20.7084 4.75215 17.6126 2 13.8073 2C10.0021 2 6.90625 4.75211 6.90625 8.13486C6.90625 11.5176 10.0021 14.2698 13.8073 14.2698ZM11.5898 10.0493C11.7905 9.77864 12.2021 9.70267 12.5089 9.8798C12.9561 10.1377 13.1247 10.1615 13.7148 10.1579C14.2907 10.1545 14.6248 9.77595 14.6916 9.42561C14.7241 9.25521 14.7365 8.83909 14.1517 8.65677C13.4658 8.44292 12.7639 8.19849 12.2755 7.86069C11.7872 7.52288 11.5636 6.93971 11.692 6.33886C11.8312 5.68749 12.3464 5.16897 13.0366 4.98564C13.0428 4.984 13.049 4.98268 13.0552 4.98104V4.75906C13.0552 4.43566 13.3525 4.17347 13.7192 4.17347C14.0859 4.17347 14.3832 4.43566 14.3832 4.75906V4.94414C14.8341 5.03909 15.1491 5.22105 15.277 5.30533C15.5707 5.49901 15.6308 5.86594 15.4112 6.125C15.1917 6.38407 14.7756 6.43708 14.4819 6.24337C14.3458 6.15366 13.9698 5.9608 13.4196 6.10701C13.0982 6.19242 13.0148 6.4721 12.9969 6.55576C12.9618 6.72015 13.0012 6.87424 13.0951 6.93913C13.4336 7.17328 14.0429 7.38062 14.5943 7.55251C15.6111 7.86947 16.1764 8.70022 16.0012 9.61975C15.9152 10.0709 15.6578 10.4895 15.2764 10.7985C15.0167 11.009 14.7144 11.1591 14.3832 11.2448V11.5107C14.3832 11.8341 14.0859 12.0962 13.7192 12.0962C13.3525 12.0962 13.0552 11.8341 13.0552 11.5107V11.3032C12.6259 11.2573 12.2655 11.1388 11.7819 10.8599C11.4751 10.6828 11.389 10.3199 11.5898 10.0493Z"
               fill="white"
@@ -244,7 +294,7 @@ function Sidebar() {
       </ul>
 
       {/* User Profile Section (Bottom) */}
-      <UserProfile />
+      <UserProfile  />
     </aside>
   );
 }

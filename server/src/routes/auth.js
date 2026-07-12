@@ -31,7 +31,7 @@ router.post("/login", async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production", 
-      sameSite: "none",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", //for local development, you can use "lax" or "strict"
       maxAge: 3600000 
     });
 
@@ -48,9 +48,25 @@ router.post("/login", async (req, res) => {
 });
 
 // ✅ FIXED: VERIFY ROUTE (Using the imported middleware)
-router.get("/verify", authorization, (req, res) => {
+// ✅ UPGRADED: VERIFY / ME ROUTE
+router.get("/verify", authorization, async (req, res) => {
   try {
-    res.json(true);
+    // req.user contains the ID parsed from the JWT by your authorization middleware
+    const user = await prisma.user.findUnique({
+      where: { id: req.user }, 
+      select: { 
+        id: true, 
+        name: true, 
+        email: true 
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json("User not found");
+    }
+
+    // Return the user details instead of just 'true'
+    res.json({ isAuthenticated: true, user: user });
   } catch (err) {
     console.error(err.message);
     res.status(500).send("Server Error");

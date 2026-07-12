@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react"; // ✅ Import useEffect & useState
+import { useEffect, useState } from "react";
 import { Route, Routes, Navigate } from "react-router-dom";
-import { useDispatch, useSelector } from "react-redux"; // ✅ Import useDispatch
+import { useDispatch, useSelector } from "react-redux"; 
 import axios from "axios";
+import {Toaster} from "react-hot-toast"; 
 
 import "./App.css";
 import LogIn from "./pages/home/LogIn";
@@ -16,9 +17,9 @@ import ExpenseTracker from "./pages/DashboardPages/ExpenseTracker";
 
 
 // ✅ 1. AXIOS SETUP
-axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
+// axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com'; 
 
-// axios.defaults.baseURL = 'http://localhost:3000';
+axios.defaults.baseURL = 'https://mg-finance-a0tt.onrender.com';
 axios.defaults.withCredentials = true; // 🚨 CRITICAL: Allows cookies to be sent/received
 
 function App() {
@@ -51,6 +52,8 @@ function App() {
   if (isCheckingAuth) return <div>Loading...</div>; 
 
   return (
+    <>
+    <Toaster position="bottom-right" reverseOrder={false} />
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<LandingPage />} />
@@ -84,6 +87,7 @@ function App() {
 
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    </>
   );
 }
 

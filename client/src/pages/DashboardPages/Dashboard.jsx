@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-
+import AddCapitalModal from "../../components/AddCapitalModal";
 // --- Reusable Stat Card Component ---
 const StatCard = ({ title, value, unit = '', bgColorClass = 'bg-[#3B4F2A]' }) => (
     <div className={`p-4 rounded-3xl text-sm  md:p-6 shadow-lg text-white ${bgColorClass} 
@@ -27,6 +27,7 @@ function Dashboard() {
             amountRecovered: 0,
             cashInHand: 0,
             totalWaivers: 0,
+            totalExpenses: 0
         },
         loanStats: {
             totalLoans: 0,
@@ -39,11 +40,11 @@ function Dashboard() {
     const [loading, setLoading] = useState(true);
 
     // 2. Fetch Data from API on Component Mount
-    useEffect(() => {
-        const fetchDashboardData = async () => {
+     const fetchDashboardData = async () => {
             try {
                 // Ensure this URL matches your backend port (default 5000 or 3000)
                 const response = await fetch("https://mg-finance-a0tt.onrender.com/summary");
+                // const response = await fetch("https://mg-finance-a0tt.onrender.com/summary");
                 
                 if (response.ok) {
                     const data = await response.json();
@@ -57,7 +58,7 @@ function Dashboard() {
                 setLoading(false);
             }
         };
-
+    useEffect(() => {
         fetchDashboardData();
     }, []);
 
@@ -70,6 +71,7 @@ function Dashboard() {
     const financialData = [
         { title: 'Amount Invested', value: formatCurrency(stats.financial.amountInvested), unit: '₹' },
         { title: 'Amount Disbursed', value: formatCurrency(stats.financial.amountDisbursed), unit: '₹' },
+       { title: 'Total Expenses', value: formatCurrency(stats.financial.totalExpenses), unit: '₹', isExpense: true },
         { title: 'Amount Recovered', value: formatCurrency(stats.financial.amountRecovered), unit: '₹' },
         { title: 'Total Waivers', value: formatCurrency(stats.financial.totalWaivers), unit: '₹', isWaiver: true },
         { title: 'Cash In Hand', value: formatCurrency(stats.financial.cashInHand), unit: '₹' },
@@ -83,7 +85,7 @@ function Dashboard() {
     ];
     
     const ACCENT_COLOR = '#AD4040'; 
-
+const [isCapitalModalOpen, setIsCapitalModalOpen] = useState(false);
     if (loading) return <div className="p-8">Loading Dashboard...</div>;
 
     return (
@@ -93,6 +95,14 @@ function Dashboard() {
                 <h2 className="text-3xl font-light" style={{ color: ACCENT_COLOR }}>
                     Admin Dashboard
                 </h2>
+                {/* NEW: Add Capital Button */}
+                <button 
+                    onClick={() => setIsCapitalModalOpen(true)}
+                    className="text-white px-5 py-2 rounded-md font-medium hover:opacity-90 transition flex items-center shadow-sm"
+                    style={{ backgroundColor: "#4e6739" }} // Sidebar Green
+                >
+                    + Add Capital
+                </button>
             </header>
 
             {/* === 2. Financial Metrics Section === */}
@@ -129,6 +139,11 @@ function Dashboard() {
                     ))}
                 </div>
             </section>
+            <AddCapitalModal 
+                isOpen={isCapitalModalOpen} 
+                onClose={() => setIsCapitalModalOpen(false)} 
+                onCapitalAdded={fetchDashboardData} 
+            />
         </div>
     );
 }

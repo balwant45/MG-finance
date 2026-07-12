@@ -11,6 +11,7 @@ import expenseRoutes from "./routes/Expense.route.js";
 import { getDashboardSummary } from "./controllers/Dashboard.controller.js";
 // import installmentRoutes from "./routes/Installment.route.js"; 
 import { handleContactForm } from "./controllers/Contact.controller.js";
+import transactionRoutes from "./routes/Transaction.route.js"; // Import the transaction routes
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use("/auth", authRoutes);
 app.use("/customers", customerRoutes);
 app.use("/loans", loanRoutes);
 app.use("/expenses", expenseRoutes);
+app.use("/transactions", transactionRoutes); // Mount the transaction routes
 
 // Home route
 app.get("/", (req, res) => {
